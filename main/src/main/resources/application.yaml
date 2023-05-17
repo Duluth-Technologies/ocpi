@@ -1,0 +1,36 @@
+# DRIVER_CLASS_NAME Name of the driver class for JDBC connection
+# ENCRYPTION_PASSWORD Password to encrypt tokens in the database
+# EXTERNAL_URL External URL to reach the application
+# JDBC_URL URL to the JDBC connection
+# POSTGRESQL_USERNAME Username to connect to the PostgreSQL database
+# POSTGRESQL_PASSWORD Password to connect to the PostgreSQL database
+
+logging:
+  level:
+    root: INFO
+    '[com.duluthtechnologies.ocpi]': DEBUG
+
+ocpi:
+  api:
+    swagger:
+      activated: false
+  ocpi-api:
+    externalUrl: ${EXTERNAL_URL}
+  persistence:
+    driverClassName: ${DRIVER_CLASS_NAME}
+    jdbcUrl: ${JDBC_URL}
+    username: ${POSTGRESQL_USERNAME}
+    password: ${POSTGRESQL_PASSWORD}
+    encryptionPassword: ${ENCRYPTION_PASSWORD}    
+    
+spring:
+  liquibase:
+    enabled: true
+    change-log: classpath:/db/changelog/db.changelog-master.xml
+    
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
