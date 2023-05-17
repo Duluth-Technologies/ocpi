@@ -1,0 +1,6 @@
+logging:
+  level:
+    root: INFO
+    '[com.duluthtechnologies.ocpi]': DEBUG
+  file:
+    name: target/tests.log

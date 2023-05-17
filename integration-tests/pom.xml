@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<artifactId>ocpi-parent</artifactId>
+		<groupId>com.duluthtechnologies.ocpi</groupId>
+		<version>0.0.1-SNAPSHOT</version>
+	</parent>
+
+	<groupId>com.duluthtechnologies.ocpi</groupId>
+	<artifactId>integration-tests</artifactId>
+	<name>integration-tests</name>
+
+
+	<dependencies>
+		<dependency>
+			<groupId>com.duluthtechnologies.ocpi</groupId>
+			<artifactId>main</artifactId>
+			<version>${project.version}</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.duluthtechnologies.ocpi</groupId>
+			<artifactId>api-dto</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.duluthtechnologies.ocpi</groupId>
+			<artifactId>testing</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.seleniumhq.selenium</groupId>
+			<artifactId>selenium-java</artifactId>
+			<version>4.9.1</version>
+		</dependency>
+	</dependencies>
+</project>
