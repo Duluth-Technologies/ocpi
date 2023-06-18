@@ -1,4 +1,4 @@
-package com.duluthtechnologies.ocpi.persistence.test.config;
+package com.duluthtechnologies.ocpi.test.persistence.config;
 
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;

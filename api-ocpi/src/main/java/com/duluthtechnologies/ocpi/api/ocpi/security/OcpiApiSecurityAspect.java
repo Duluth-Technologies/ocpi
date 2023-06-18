@@ -16,9 +16,9 @@ import com.duluthtechnologies.ocpi.core.context.SecurityContext;
 
 @Aspect
 @Component
-public class SecurityAspect {
+public class OcpiApiSecurityAspect {
 
-	private static final Logger LOG = LoggerFactory.getLogger(SecurityAspect.class);
+	private static final Logger LOG = LoggerFactory.getLogger(OcpiApiSecurityAspect.class);
 
 	@Around("@within(com.duluthtechnologies.ocpi.api.ocpi.annotation.Authenticated)")
 	public Object enforceAuthenticated(ProceedingJoinPoint joinPoint) throws Throwable {

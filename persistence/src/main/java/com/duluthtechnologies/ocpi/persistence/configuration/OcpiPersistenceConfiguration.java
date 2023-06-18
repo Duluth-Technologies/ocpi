@@ -8,6 +8,8 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.envers.repository.config.EnableEnversRepositories;
+import org.springframework.data.envers.repository.support.EnversRevisionRepositoryFactoryBean;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
@@ -18,11 +20,12 @@ import com.zaxxer.hikari.HikariDataSource;
 @EnableConfigurationProperties
 @EnableTransactionManagement
 @EntityScan("com.duluthtechnologies.ocpi.persistence.entity")
-@EnableJpaRepositories("com.duluthtechnologies.ocpi.persistence.jpa")
+@EnableEnversRepositories
+@EnableJpaRepositories(value = "com.duluthtechnologies.ocpi.persistence.jpa", repositoryFactoryBeanClass = EnversRevisionRepositoryFactoryBean.class)
 @EnableJpaAuditing
 public class OcpiPersistenceConfiguration {
 
-	private final static Logger LOG = LoggerFactory.getLogger(OcpiPersistenceConfiguration.class);
+	private static final Logger LOG = LoggerFactory.getLogger(OcpiPersistenceConfiguration.class);
 
 	@Bean
 	public DataSource dataSource(OcpiPersistenceProperties properties) {

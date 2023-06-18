@@ -1,5 +1,6 @@
 package com.duluthtechnologies.ocpi.core.service;
 
+import java.util.List;
 import java.util.Optional;
 
 import com.duluthtechnologies.ocpi.core.model.RegisteredCPO;
@@ -79,6 +80,10 @@ public interface RegisteredOperatorService {
 	Optional<RegisteredOperator> findByIncomingToken(@NotEmpty String token);
 
 	Optional<RegisteredCPO> findCPOByKey(String key);
+
+	List<RegisteredCPO> findCPOs();
+
+	List<RegisteredEMSP> findEMSPs();
 
 	Optional<RegisteredEMSP> findEMSPByKey(String key);
 

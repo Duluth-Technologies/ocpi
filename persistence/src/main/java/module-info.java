@@ -16,6 +16,9 @@ open module com.duluthtechnologies.ocpi.persistence {
 	requires java.compiler;
 	requires com.zaxxer.hikari;
 	requires java.sql;
+	requires spring.data.envers;
+	requires org.hibernate.orm.envers;
+	requires org.hibernate.orm.core;
 
 	exports com.duluthtechnologies.ocpi.persistence.configuration;
 }

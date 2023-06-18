@@ -31,12 +31,12 @@ public abstract class RegisteredOperatorMapper {
 	@Mapping(source = "incomingToken", target = "incomingToken")
 	@Mapping(source = "outgoingToken", target = "outgoingToken")
 	public abstract RegisteredCPOV211Impl toRegisteredCPOV211(RegisteredCPO registeredCPO, String credentialsUrl,
-			String incomingToken, String outgoingToken);
+			String locationsUrl, String incomingToken, String outgoingToken);
 
 	@Mapping(source = "incomingToken", target = "incomingToken")
 	@Mapping(source = "outgoingToken", target = "outgoingToken")
 	public abstract RegisteredEMSPV211Impl toRegisteredEMSPV211(RegisteredEMSP registeredEMSP, String credentialsUrl,
-			String incomingToken, String outgoingToken);
+			String locationsUrl, String incomingToken, String outgoingToken);
 
 	protected static class RegisteredEMSPImpl implements RegisteredEMSP {
 
@@ -148,6 +148,8 @@ public abstract class RegisteredOperatorMapper {
 
 		private String credentialsUrl;
 
+		private String locationsUrl;
+
 		@Override
 		public String getCredentialsUrl() {
 			return credentialsUrl;
@@ -155,6 +157,15 @@ public abstract class RegisteredOperatorMapper {
 
 		public void setCredentialsUrl(String credentialsUrl) {
 			this.credentialsUrl = credentialsUrl;
+		}
+
+		@Override
+		public String getLocationsUrl() {
+			return locationsUrl;
+		}
+
+		public void setLocationsUrl(String locationsUrl) {
+			this.locationsUrl = locationsUrl;
 		}
 
 	}
@@ -268,6 +279,8 @@ public abstract class RegisteredOperatorMapper {
 
 		private String credentialsUrl;
 
+		private String locationsUrl;
+
 		@Override
 		public String getCredentialsUrl() {
 			return credentialsUrl;
@@ -275,6 +288,15 @@ public abstract class RegisteredOperatorMapper {
 
 		public void setCredentialsUrl(String credentialsUrl) {
 			this.credentialsUrl = credentialsUrl;
+		}
+
+		@Override
+		public String getLocationsUrl() {
+			return locationsUrl;
+		}
+
+		public void setLocationsUrl(String locationsUrl) {
+			this.locationsUrl = locationsUrl;
 		}
 
 	}

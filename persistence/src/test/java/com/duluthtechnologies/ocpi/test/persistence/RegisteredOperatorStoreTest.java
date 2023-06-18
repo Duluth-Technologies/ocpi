@@ -1,26 +1,19 @@
-package com.duluthtechnologies.ocpi.persistence.test;
+package com.duluthtechnologies.ocpi.test.persistence;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import com.duluthtechnologies.ocpi.core.model.RegisteredOperator;
 import com.duluthtechnologies.ocpi.core.store.RegisteredOperatorStore;
 import com.duluthtechnologies.ocpi.persistence.entity.RegisteredEMSPEntity;
 import com.duluthtechnologies.ocpi.persistence.entity.v211.RegisteredEMSPV211Entity;
-import com.duluthtechnologies.ocpi.persistence.mapper.RegisteredOperatorEntityMapper;
-import com.duluthtechnologies.ocpi.persistence.test.config.SpringBootTestConfiguration;
 
-@SpringBootTest(classes = SpringBootTestConfiguration.class)
-class RegisteredOperatorStoreTest {
+class RegisteredOperatorStoreTest extends AbstractTest {
 
 	@Autowired
 	RegisteredOperatorStore registeredOperatorStore;
-
-	@Autowired
-	RegisteredOperatorEntityMapper registeredOperatorEntityMapper;
 
 	@Test
 	void testCreateThenFindByToken() {

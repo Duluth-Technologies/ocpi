@@ -1,5 +1,6 @@
 package com.duluthtechnologies.ocpi.service.impl;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -97,8 +98,18 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 	}
 
 	@Override
+	public List<RegisteredCPO> findCPOs() {
+		return registeredOperatorStore.findCPOs();
+	}
+
+	@Override
 	public Optional<RegisteredEMSP> findEMSPByKey(String key) {
 		return registeredOperatorStore.findByKey(key).map(RegisteredEMSP.class::cast);
+	}
+
+	@Override
+	public List<RegisteredEMSP> findEMSPs() {
+		return registeredOperatorStore.findEMSPs();
 	}
 
 	@Override
@@ -114,12 +125,6 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 				registeredEMSP.getClass().getCanonicalName(), registeredEMSP.getKey());
 		return (RegisteredEMSP) registeredOperatorStore.update(registeredEMSP);
 	}
-
-//	private RegisteredEMSP updateRegisteredEMSPNow(RegisteredEMSP registeredEMSP) {
-//		LOG.debug("Updating now Registered EMSP of type [{}] with key [{}]...",
-//				registeredEMSP.getClass().getCanonicalName(), registeredEMSP.getKey());
-//		return (RegisteredEMSP) registeredOperatorStore.updateNow(registeredEMSP);
-//	}
 
 	@Override
 	public void performHandshakeWithCPO(String key) {
@@ -157,9 +162,15 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 				}).getBody().data();
 		if (versionDetails.version() == VersionNumber.V2_1_1) {
 			String credentialsUrl = null;
+			String locationsUrl = null;
 			for (Endpoint endpoint : versionDetails.endpoints()) {
 				if (endpoint.identifier() == ModuleID.CredentialsRegistration) {
 					credentialsUrl = endpoint.url();
+					LOG.debug("CPO version details returned Credentials URL [{}].", credentialsUrl);
+				}
+				if (endpoint.identifier() == ModuleID.Locations) {
+					locationsUrl = endpoint.url();
+					LOG.debug("CPO version details returned Locations URL [{}].", locationsUrl);
 				}
 			}
 			String incomingToken = UUID.randomUUID().toString();
@@ -177,7 +188,7 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 					new ParameterizedTypeReference<Response<Credentials>>() {
 					}).getBody().data();
 			RegisteredCPOV211 registeredCPOV211 = registeredOperatorMapper.toRegisteredCPOV211(registeredCPO,
-					credentialsUrl, incomingToken, emspCredentials.token());
+					credentialsUrl, locationsUrl, incomingToken, emspCredentials.token());
 			updateRegisteredCPO(registeredCPOV211);
 		}
 	}
@@ -219,9 +230,15 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 				}).getBody().data();
 		if (versionDetails.version() == VersionNumber.V2_1_1) {
 			String credentialsUrl = null;
+			String locationsUrl = null;
 			for (Endpoint endpoint : versionDetails.endpoints()) {
 				if (endpoint.identifier() == ModuleID.CredentialsRegistration) {
 					credentialsUrl = endpoint.url();
+					LOG.debug("EMSP version details returned Credentials URL [{}].", credentialsUrl);
+				}
+				if (endpoint.identifier() == ModuleID.Locations) {
+					locationsUrl = endpoint.url();
+					LOG.debug("EMSP version details returned Locations URL [{}].", locationsUrl);
 				}
 			}
 			String incomingToken = UUID.randomUUID().toString();
@@ -239,7 +256,7 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 					new ParameterizedTypeReference<Response<Credentials>>() {
 					}).getBody().data();
 			RegisteredEMSPV211 registeredEMSPV211 = registeredOperatorMapper.toRegisteredEMSPV211(registeredEMSP,
-					credentialsUrl, incomingToken, emspCredentials.token());
+					credentialsUrl, locationsUrl, incomingToken, emspCredentials.token());
 			updateRegisteredEMSP(registeredEMSPV211);
 		}
 	}
@@ -269,14 +286,20 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 				new ParameterizedTypeReference<Response<VersionDetails>>() {
 				}).getBody().data();
 		String credentialsUrl = null;
+		String locationsUrl = null;
 		for (Endpoint endpoint : versionDetails.endpoints()) {
 			if (endpoint.identifier() == ModuleID.CredentialsRegistration) {
 				credentialsUrl = endpoint.url();
+				LOG.debug("CPO version details returned Credentials URL [{}].", credentialsUrl);
+			}
+			if (endpoint.identifier() == ModuleID.Locations) {
+				locationsUrl = endpoint.url();
+				LOG.debug("CPO version details returned Locations URL [{}].", locationsUrl);
 			}
 		}
 		String incomingToken = UUID.randomUUID().toString();
 		RegisteredCPOV211 registeredCPOV211 = registeredOperatorMapper.toRegisteredCPOV211(registeredCPO,
-				credentialsUrl, incomingToken, credentials.token());
+				credentialsUrl, locationsUrl, incomingToken, credentials.token());
 		return updateRegisteredCPO(registeredCPOV211);
 	}
 
@@ -302,14 +325,20 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 				new ParameterizedTypeReference<Response<VersionDetails>>() {
 				}).getBody().data();
 		String credentialsUrl = null;
+		String locationsUrl = null;
 		for (Endpoint endpoint : versionDetails.endpoints()) {
 			if (endpoint.identifier() == ModuleID.CredentialsRegistration) {
 				credentialsUrl = endpoint.url();
+				LOG.debug("EMSP version details returned Credentials URL [{}].", credentialsUrl);
+			}
+			if (endpoint.identifier() == ModuleID.Locations) {
+				locationsUrl = endpoint.url();
+				LOG.debug("EMSP version details returned Locations URL [{}].", locationsUrl);
 			}
 		}
 		String incomingToken = UUID.randomUUID().toString();
 		RegisteredEMSPV211 registeredEMSPV211 = registeredOperatorMapper.toRegisteredEMSPV211(registeredEMSP,
-				credentialsUrl, incomingToken, credentials.token());
+				credentialsUrl, locationsUrl, incomingToken, credentials.token());
 		return updateRegisteredEMSP(registeredEMSPV211);
 	}
 

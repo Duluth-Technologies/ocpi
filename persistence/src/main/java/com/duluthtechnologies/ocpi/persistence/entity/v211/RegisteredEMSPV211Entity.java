@@ -14,6 +14,9 @@ public class RegisteredEMSPV211Entity extends RegisteredEMSPEntity implements Re
 	@Column(name = "credentials_url")
 	private String credentialsUrl;
 
+	@Column(name = "locations_url")
+	private String locationsUrl;
+
 	@Override
 	public String getCredentialsUrl() {
 		return credentialsUrl;
@@ -21,6 +24,15 @@ public class RegisteredEMSPV211Entity extends RegisteredEMSPEntity implements Re
 
 	public void setCredentialsUrl(String credentialsUrl) {
 		this.credentialsUrl = credentialsUrl;
+	}
+
+	@Override
+	public String getLocationsUrl() {
+		return locationsUrl;
+	}
+
+	public void setLocationsUrl(String locationsUrl) {
+		this.locationsUrl = locationsUrl;
 	}
 
 }

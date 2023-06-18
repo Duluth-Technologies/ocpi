@@ -4,6 +4,7 @@ module com.duluthtechnologies.ocpi.service {
 	requires com.duluthtechnologies.ocpi.core;
 	requires jakarta.validation;
 	requires jakarta.transaction;
+	requires jakarta.annotation;
 	requires org.slf4j;
 	requires spring.web;
 	requires spring.core;
@@ -12,4 +13,7 @@ module com.duluthtechnologies.ocpi.service {
 	requires java.compiler;
 	requires com.duluthtechnologies.ocpi;
 	requires org.apache.httpcomponents.client5.httpclient5;
+	requires org.aspectj.weaver;
+	requires spring.boot.autoconfigure;
+	requires spring.boot;
 }

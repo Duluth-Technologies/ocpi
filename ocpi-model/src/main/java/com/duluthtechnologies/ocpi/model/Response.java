@@ -2,6 +2,7 @@ package com.duluthtechnologies.ocpi.model;
 
 import java.time.Instant;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public record Response<T>(
@@ -26,6 +27,6 @@ public record Response<T>(
 		/**
 		 * The time this message was generated.
 		 */
-		Instant timestamp) {
+		@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ssZ", timezone = "UTC") Instant timestamp) {
 
 }
