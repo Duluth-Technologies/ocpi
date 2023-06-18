@@ -1,5 +1,6 @@
 package com.duluthtechnologies.ocpi.persistence.impl;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -102,6 +103,20 @@ public class RegisteredOperatorStoreImpl implements RegisteredOperatorStore {
 	@Override
 	public Optional<RegisteredOperator> findByKey(String key) {
 		return registeredOperatorJPARepository.findByKey(key).map(RegisteredOperator.class::cast);
+	}
+
+	@Override
+	public List<RegisteredCPO> findCPOs() {
+		// TODO Fix for more efficient
+		return registeredOperatorJPARepository.findAll().stream().filter(RegisteredCPO.class::isInstance)
+				.map(RegisteredCPO.class::cast).toList();
+	}
+
+	@Override
+	public List<RegisteredEMSP> findEMSPs() {
+		// TODO Fix for more efficient
+		return registeredOperatorJPARepository.findAll().stream().filter(RegisteredEMSP.class::isInstance)
+				.map(RegisteredEMSP.class::cast).toList();
 	}
 
 }

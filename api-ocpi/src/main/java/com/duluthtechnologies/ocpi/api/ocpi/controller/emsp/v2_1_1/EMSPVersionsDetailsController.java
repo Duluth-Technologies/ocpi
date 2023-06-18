@@ -37,12 +37,12 @@ public class EMSPVersionsDetailsController {
 	@Authenticated(type = AuthenticatedType.CPO)
 	public ResponseEntity<Response<VersionDetails>> getVersions() {
 		LOG.debug("Returning EMSP version details for version 2.1.1...");
-		return ResponseEntity
-				.ok(new Response(
-						new VersionDetails(VersionNumber.V2_1_1,
-								List.of(new Endpoint(ModuleID.CredentialsRegistration,
-										externalOcpiApiUrl + "/ocpi/emsp/2.1.1/credentials"))),
-						1000, null, Instant.now()));
+		return ResponseEntity.ok(new Response(
+				new VersionDetails(VersionNumber.V2_1_1,
+						List.of(new Endpoint(ModuleID.CredentialsRegistration,
+								externalOcpiApiUrl + "/ocpi/emsp/2.1.1/credentials"),
+								new Endpoint(ModuleID.Locations, externalOcpiApiUrl + "/ocpi/emsp/2.1.1/locations"))),
+				1000, null, Instant.now()));
 	}
 
 }

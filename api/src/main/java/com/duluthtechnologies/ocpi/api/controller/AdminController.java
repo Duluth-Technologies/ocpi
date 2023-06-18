@@ -15,11 +15,16 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.duluthtechnologies.ocpi.api.dto.CPORegistrationForm;
 import com.duluthtechnologies.ocpi.api.dto.EMSPRegistrationForm;
+import com.duluthtechnologies.ocpi.api.dto.LocationCreationForm;
+import com.duluthtechnologies.ocpi.api.dto.LocationView;
 import com.duluthtechnologies.ocpi.api.dto.RegisteredCPOView;
 import com.duluthtechnologies.ocpi.api.dto.RegisteredEMSPView;
+import com.duluthtechnologies.ocpi.api.mapper.LocationDTOMapper;
 import com.duluthtechnologies.ocpi.api.mapper.RegisteredOperatorDTOMapper;
+import com.duluthtechnologies.ocpi.core.model.Location;
 import com.duluthtechnologies.ocpi.core.model.RegisteredCPO;
 import com.duluthtechnologies.ocpi.core.model.RegisteredEMSP;
+import com.duluthtechnologies.ocpi.core.service.LocationService;
 import com.duluthtechnologies.ocpi.core.service.RegisteredOperatorService;
 import com.duluthtechnologies.ocpi.core.service.RegisteredOperatorService.RegisteredCPOCreationForm;
 import com.duluthtechnologies.ocpi.core.service.RegisteredOperatorService.RegisteredEMSPCreationForm;
@@ -41,11 +46,18 @@ public class AdminController {
 
 	private final RegisteredOperatorDTOMapper registeredOperatorMapper;
 
+	private final LocationService locationService;
+
+	private final LocationDTOMapper locationMapper;
+
 	public AdminController(RegisteredOperatorService registeredOperatorService,
-			RegisteredOperatorDTOMapper registeredOperatorMapper) {
+			RegisteredOperatorDTOMapper registeredOperatorMapper, LocationService locationService,
+			LocationDTOMapper locationMapper) {
 		super();
 		this.registeredOperatorService = registeredOperatorService;
 		this.registeredOperatorMapper = registeredOperatorMapper;
+		this.locationService = locationService;
+		this.locationMapper = locationMapper;
 	}
 
 	@Operation(summary = "Retrieve a CPO")
@@ -127,6 +139,13 @@ public class AdminController {
 		RegisteredCPOView registeredCPOView = registeredOperatorMapper.toRegisteredCPOView(registeredCPO);
 		LOG.debug("Returning CPO of type [{}]...", registeredCPOView.getClass().getCanonicalName());
 		return ResponseEntity.ok(registeredCPOView);
+	}
+
+	@Operation(summary = "Creates a new Location")
+	@PostMapping("/location")
+	public ResponseEntity<LocationView> createLocation(@RequestBody LocationCreationForm locationCreationForm) {
+		Location location = locationService.createLocation(locationMapper.toLocationForm(locationCreationForm));
+		return ResponseEntity.created(null).body(locationMapper.toLocationView(location));
 	}
 
 }
