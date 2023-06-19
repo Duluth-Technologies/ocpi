@@ -147,6 +147,10 @@ public class ConnectorServiceImpl implements ConnectorService {
 		List<RegisteredEMSP> registeredEMSPs = registeredOperatorService.findEMSPs();
 		LOG.info("Publishing asynchronously status [{}] for Connector with key [{}] on EMSPs with key {}...", status,
 				key, registeredEMSPs.stream().map(RegisteredEMSP::getKey).toList());
+		// We compute the evsePatchStatus outside of the task executor so that we can reuse the Hibernate session
+		// TODO Refactor
+		com.duluthtechnologies.ocpi.model.v211.EVSE evsePatchStatus = connectorMapper
+				.toEvsePatchStatus(connectorUpdated.getEvse());
 		taskExecutor.execute(() -> {
 			for (RegisteredEMSP registeredEMSP : registeredEMSPs) {
 				LOG.debug("Publishing status [{}] of Connector with key [{}] on EMSP with key [{}]...", status, key,
@@ -154,9 +158,7 @@ public class ConnectorServiceImpl implements ConnectorService {
 				try {
 					if (registeredEMSP instanceof RegisteredEMSPV211 registeredEMSPV211) {
 						if (registeredEMSPV211.getOutgoingToken() != null
-								&& registeredEMSPV211.getLocationsUrl() != null) {
-							com.duluthtechnologies.ocpi.model.v211.EVSE evsePatchStatus = connectorMapper
-									.toEvsePatchStatus(connectorUpdated.getEvse());
+								&& registeredEMSPV211.getLocationsUrl() != null) {							
 							HttpHeaders headers = new HttpHeaders();
 							headers.set("Authorization", "Token " + registeredEMSPV211.getOutgoingToken());
 							HttpEntity entity = new HttpEntity<>(evsePatchStatus, headers);
@@ -167,7 +169,7 @@ public class ConnectorServiceImpl implements ConnectorService {
 						}
 					}
 				} catch (Exception e) {
-					String message = "Exception caught while publishing status [{}] of Connector with key [%s] on EMSP with key [%s]"
+					String message = "Exception caught while publishing status [%s] of Connector with key [%s] on EMSP with key [%s]"
 							.formatted(status, key, registeredEMSP.getKey());
 					LOG.error(message, e); // No rethrow as we want to continue
 				}
