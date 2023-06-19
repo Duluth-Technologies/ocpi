@@ -44,7 +44,7 @@ public class OcpiContainerProvider {
 				.withEnv("LOGGING_LEVEL_ROOT", LOG_LEVEL).withNetwork(network).withNetworkAliases(cpoId)
 				.withExposedPorts(8080)
 				.waitingFor(Wait.forHttp("/actuator/health").forPort(8080).forStatusCode(200)
-						.withStartupTimeout(Duration.ofSeconds(60)))
+						.withStartupTimeout(Duration.ofSeconds(120)))
 				.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(cpoId)));
 		cpoContainer.start();
 		LOG.info("Started CPO container.");
@@ -106,7 +106,7 @@ public class OcpiContainerProvider {
 				.withEnv("LOGGING_LEVEL_ROOT", LOG_LEVEL).withNetwork(network).withNetworkAliases(emspId)
 				.withExposedPorts(8080)
 				.waitingFor(Wait.forHttp("/actuator/health").forPort(8080).forStatusCode(200)
-						.withStartupTimeout(Duration.ofSeconds(60)))
+						.withStartupTimeout(Duration.ofSeconds(120)))
 				.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger(emspId)));
 		emspContainer.start();
 		LOG.info("Started EMSP container.");
