@@ -2,11 +2,14 @@ package com.duluthtechnologies.ocpi.model.v211;
 
 import java.time.Instant;
 
+import com.duluthtechnologies.ocpi.model.TimestampDeserializer;
+import com.duluthtechnologies.ocpi.model.TimestampSerializer;
 import com.duluthtechnologies.ocpi.model.v211.Connector.ConnectorFormat;
 import com.duluthtechnologies.ocpi.model.v211.Connector.ConnectorType;
 import com.duluthtechnologies.ocpi.model.v211.Connector.PowerType;
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -62,7 +65,7 @@ public record Connector(
 		/**
 		 * Timestamp when this Connectors was last updated (or created).
 		 */
-		@JsonProperty("last_updated") @NotNull @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ssZ", timezone = "UTC") Instant lastUpdated) {
+		@JsonProperty("last_updated") @NotNull @JsonDeserialize(using = TimestampDeserializer.class) @JsonSerialize(using = TimestampSerializer.class) Instant lastUpdated) {
 
 	/**
 	 * Represents connector types according to the OCPI 2.1.1 standard.

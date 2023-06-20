@@ -33,7 +33,7 @@ public class SpringBootTestConfiguration {
 	CPOTestInstance cpoTestInstance(Network network) {
 		String partyId = RandomStringUtils.random(3, true, false).toUpperCase();
 		LOG.info("Creating CPO instance under test with party Id [{}]...", partyId);
-		return ocpiContainerProvider.createCPOContainer(network, "FR", partyId);
+		return ocpiContainerProvider.createCPOContainer(network, "FR", partyId, true);
 	}
 
 	@Bean

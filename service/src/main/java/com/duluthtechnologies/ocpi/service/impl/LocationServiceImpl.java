@@ -132,7 +132,8 @@ public class LocationServiceImpl implements LocationService {
 
 	private void synchronizeWithRegisteredCpo(RegisteredCPO registeredCPO) {
 		LOG.debug("Synchronizing with Registered CPO with key [{}]...", registeredCPO.getKey());
-		if (registeredCPO instanceof RegisteredCPOV211 registeredCPOV211) {
+		if (registeredCPO instanceof RegisteredCPOV211 registeredCPOV211
+				&& registeredCPOV211.getLocationsUrl() != null) {
 			List<com.duluthtechnologies.ocpi.model.v211.Location> locationV211s = new LinkedList<>();
 			HttpHeaders headers = new HttpHeaders();
 			headers.set("Authorization", "Token " + registeredCPOV211.getOutgoingToken());
