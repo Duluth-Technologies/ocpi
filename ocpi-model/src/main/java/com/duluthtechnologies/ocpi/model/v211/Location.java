@@ -3,8 +3,12 @@ package com.duluthtechnologies.ocpi.model.v211;
 import java.time.Instant;
 import java.util.List;
 
+import com.duluthtechnologies.ocpi.model.TimestampDeserializer;
+import com.duluthtechnologies.ocpi.model.TimestampSerializer;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -94,7 +98,7 @@ public record Location(
 
 		@Valid @JsonProperty("energy_mix") EnergyMix energyMix,
 
-		@NotNull @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ssZ", timezone = "UTC") @JsonProperty("last_updated") Instant lastUpdated) {
+		@NotNull @JsonDeserialize(using = TimestampDeserializer.class) @JsonSerialize(using = TimestampSerializer.class) @JsonProperty("last_updated") Instant lastUpdated) {
 
 	public enum Type {
 

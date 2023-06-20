@@ -4,8 +4,11 @@ import java.security.DrbgParameters.Capability;
 import java.time.Instant;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.duluthtechnologies.ocpi.model.TimestampDeserializer;
+import com.duluthtechnologies.ocpi.model.TimestampSerializer;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -83,6 +86,6 @@ public record EVSE(
 		 * Timestamp when this EVSE or one of its Connectors was last updated (or
 		 * created).
 		 */
-		@NotNull @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ssZ", timezone = "UTC") @JsonProperty("last_updated") Instant lastUpdated) {
+		@NotNull @JsonDeserialize(using = TimestampDeserializer.class) @JsonSerialize(using = TimestampSerializer.class) @JsonProperty("last_updated") Instant lastUpdated) {
 
 }

@@ -8,6 +8,7 @@ module com.duluthtechnologies.ocpi.api.ocpi {
 	requires spring.beans;
 	requires jakarta.servlet;
 	requires jakarta.validation;
+	requires jakarta.annotation;
 	requires org.aspectj.weaver;
 	requires spring.boot;
 	requires io.swagger.v3.oas.annotations;

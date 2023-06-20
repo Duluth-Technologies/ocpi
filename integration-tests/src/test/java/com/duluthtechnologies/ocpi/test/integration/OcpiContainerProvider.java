@@ -24,7 +24,8 @@ public class OcpiContainerProvider {
 	@Autowired
 	PostgreSQLProvider postgreSQLProvider;
 
-	public CPOTestInstance createCPOContainer(Network network, String countryCode, String partyId) {
+	public CPOTestInstance createCPOContainer(Network network, String countryCode, String partyId,
+			boolean serializeTimestampWithZ) {
 		String cpoId = "cpo-" + countryCode + "-" + partyId;
 		LOG.info("Creating PostgreSQL database for CPO container [{}]...", cpoId);
 		PostgreSQLTestInstance postgreSQLTestInstance = postgreSQLProvider.createPostgreSQLTestInstance(network,
@@ -41,6 +42,7 @@ public class OcpiContainerProvider {
 				.withEnv("EXTERNAL_URL", "http://" + cpoId + ":8080").withEnv("OCPI_CPO_COUNTRYCODE", "FR")
 				.withEnv("OCPI_API_SWAGGER_ACTIVATED", "true").withEnv("OCPI_CPO_PARTYID", partyId)
 				.withEnv("OCPI_CPO_ENABLED", "true").withEnv("OCPI_NAME", partyId)
+				.withEnv("OCPI_OCPI_API_SERIALIZE_TIMESTAMP_WITH_Z", serializeTimestampWithZ ? "true" : "false")
 				.withEnv("LOGGING_LEVEL_ROOT", LOG_LEVEL).withNetwork(network).withNetworkAliases(cpoId)
 				.withExposedPorts(8080)
 				.waitingFor(Wait.forHttp("/actuator/health").forPort(8080).forStatusCode(200)
