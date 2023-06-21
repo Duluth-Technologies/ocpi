@@ -16,4 +16,5 @@ module com.duluthtechnologies.ocpi.service {
 	requires org.aspectj.weaver;
 	requires spring.boot.autoconfigure;
 	requires spring.boot;
+	requires com.duluthtechnologies.ocpi.api.client;
 }
