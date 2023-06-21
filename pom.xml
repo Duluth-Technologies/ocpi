@@ -201,6 +201,7 @@
 		<module>api-ocpi</module>
 		<module>integration-tests</module>
 		<module>testing</module>
+		<module>api-ocpi-client</module>
 	</modules>
 
 </project>

@@ -14,8 +14,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import com.duluthtechnologies.ocpi.api.client.OcpiApiClient;
+import com.duluthtechnologies.ocpi.api.client.OcpiApiClientException;
 import com.duluthtechnologies.ocpi.core.configuration.CPOInfo;
 import com.duluthtechnologies.ocpi.core.configuration.EMSPInfo;
 import com.duluthtechnologies.ocpi.core.model.RegisteredCPO;
@@ -55,10 +58,12 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 	private final String externalOcpiApiUrl;
 
 	private final RestTemplate restTemplate;
+	
+	private final OcpiApiClient ocpiApiClient;
 
 	public RegisteredOperatorServiceImpl(RegisteredOperatorStore registeredOperatorStore,
 			RegisteredOperatorMapper registeredOperatorMapper, Optional<CPOInfo> cpoInfo,
-			@Qualifier("externalOcpiApiUrl") String externalOcpiApiUrl, Optional<EMSPInfo> emspInfo) {
+			@Qualifier("externalOcpiApiUrl") String externalOcpiApiUrl, Optional<EMSPInfo> emspInfo, OcpiApiClient ocpiApiClient) {
 		super();
 		this.registeredOperatorStore = registeredOperatorStore;
 		this.registeredOperatorMapper = registeredOperatorMapper;
@@ -67,6 +72,7 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 		this.externalOcpiApiUrl = externalOcpiApiUrl;
 		this.restTemplate = new RestTemplate();
 		this.restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+		this.ocpiApiClient = ocpiApiClient;
 	}
 
 	@Override
@@ -128,68 +134,70 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 
 	@Override
 	public void performHandshakeWithCPO(String key) {
-		RegisteredCPO registeredCPO = (RegisteredCPO) registeredOperatorStore.findByKey(key).orElseThrow(() -> {
-			String message = "Cannot perform handshake with CPO with key [%s] as it cannot be found.".formatted(key);
-			LOG.error(message);
-			return new RuntimeException(message); // TODO
-		});
-		String token = registeredCPO.getOutgoingToken();
-		if (token == null) {
-			String message = "Cannot perform handshake with CPO with key [%s] as no outgoing token has been set."
-					.formatted(key);
-			LOG.error(message);
-			throw new RuntimeException(message); // TODO
-		}
-		String versionUrl = registeredCPO.getVersionUrl();
-		if (versionUrl == null) {
-			String message = "Cannot perform handshake with CPO with key [%s] as no version URL has been set."
-					.formatted(key);
-			LOG.error(message);
-			throw new RuntimeException(message); // TODO
-		}
-		LOG.debug("Calling CPO version URL [{}]...", versionUrl);
-		HttpHeaders headers = new HttpHeaders();
-		headers.set("Authorization", "Token " + token);
-		HttpEntity entity = new HttpEntity<>(headers);
-		Version[] versions = restTemplate
-				.exchange(versionUrl, HttpMethod.GET, entity, new ParameterizedTypeReference<Response<Version[]>>() {
-				}).getBody().data();
-		Version version = pickVersion(versions);
-
-		LOG.debug("Calling CPO version details URL [{}]...", version.url());
-		VersionDetails versionDetails = restTemplate.exchange(version.url(), HttpMethod.GET, entity,
-				new ParameterizedTypeReference<Response<VersionDetails>>() {
-				}).getBody().data();
-		if (versionDetails.version() == VersionNumber.V2_1_1) {
-			String credentialsUrl = null;
-			String locationsUrl = null;
-			for (Endpoint endpoint : versionDetails.endpoints()) {
-				if (endpoint.identifier() == ModuleID.CredentialsRegistration) {
-					credentialsUrl = endpoint.url();
-					LOG.debug("CPO version details returned Credentials URL [{}].", credentialsUrl);
-				}
-				if (endpoint.identifier() == ModuleID.Locations) {
-					locationsUrl = endpoint.url();
-					LOG.debug("CPO version details returned Locations URL [{}].", locationsUrl);
-				}
+		try {
+			RegisteredCPO registeredCPO = (RegisteredCPO) registeredOperatorStore.findByKey(key).orElseThrow(() -> {
+				String message = "Cannot perform handshake with CPO with key [%s] as it cannot be found.".formatted(key);
+				LOG.error(message);
+				return new RuntimeException(message); // TODO
+			});
+			String token = registeredCPO.getOutgoingToken();
+			if (token == null) {
+				String message = "Cannot perform handshake with CPO with key [%s] as no outgoing token has been set."
+						.formatted(key);
+				LOG.error(message);
+				throw new RuntimeException(message); // TODO
 			}
-			String incomingToken = UUID.randomUUID().toString();
-			RegisteredCPO registeredCPOWithIncomingToken = registeredOperatorMapper.updateIncomingToken(registeredCPO,
-					incomingToken);
-			updateRegisteredCPO(registeredCPOWithIncomingToken); // TODO Remove token in case there is an error
-			Image image = new Image(null, null, null, null, null, null);
-			BusinessDetails businessDetails = new BusinessDetails(emspInfo.get().getName(),
-					emspInfo.get().getWebsiteUrl(), image);
-			Credentials credentials = new Credentials(incomingToken, externalOcpiApiUrl + "/ocpi/emsp/versions",
-					businessDetails, emspInfo.get().getPartyId(), emspInfo.get().getCountryCode());
-			LOG.debug("Calling CPO Credentials URL [{}]...", credentialsUrl);
-			entity = new HttpEntity<>(credentials, headers);
-			Credentials emspCredentials = restTemplate.exchange(credentialsUrl, HttpMethod.POST, entity,
-					new ParameterizedTypeReference<Response<Credentials>>() {
+			String versionUrl = registeredCPO.getVersionUrl();
+			if (versionUrl == null) {
+				String message = "Cannot perform handshake with CPO with key [%s] as no version URL has been set."
+						.formatted(key);
+				LOG.error(message);
+				throw new RuntimeException(message); // TODO
+			}
+			LOG.debug("Calling CPO version URL [{}]...", versionUrl);
+			HttpHeaders headers = new HttpHeaders();
+			headers.set("Authorization", "Token " + token);
+			HttpEntity entity = new HttpEntity<>(headers);
+			Version[] versions = restTemplate
+					.exchange(versionUrl, HttpMethod.GET, entity, new ParameterizedTypeReference<Response<Version[]>>() {
 					}).getBody().data();
-			RegisteredCPOV211 registeredCPOV211 = registeredOperatorMapper.toRegisteredCPOV211(registeredCPO,
-					credentialsUrl, locationsUrl, incomingToken, emspCredentials.token());
-			updateRegisteredCPO(registeredCPOV211);
+			Version version = pickVersion(versions);
+
+			LOG.debug("Calling CPO version details URL [{}]...", version.url());
+			VersionDetails versionDetails = restTemplate.exchange(version.url(), HttpMethod.GET, entity,
+					new ParameterizedTypeReference<Response<VersionDetails>>() {
+					}).getBody().data();
+			if (versionDetails.version() == VersionNumber.V2_1_1) {
+				String credentialsUrl = null;
+				String locationsUrl = null;
+				for (Endpoint endpoint : versionDetails.endpoints()) {
+					if (endpoint.identifier() == ModuleID.CredentialsRegistration) {
+						credentialsUrl = endpoint.url();
+						LOG.debug("CPO version details returned Credentials URL [{}].", credentialsUrl);
+					}
+					if (endpoint.identifier() == ModuleID.Locations) {
+						locationsUrl = endpoint.url();
+						LOG.debug("CPO version details returned Locations URL [{}].", locationsUrl);
+					}
+				}
+				String incomingToken = UUID.randomUUID().toString();
+				RegisteredCPO registeredCPOWithIncomingToken = registeredOperatorMapper.updateIncomingToken(registeredCPO,
+						incomingToken);
+				updateRegisteredCPO(registeredCPOWithIncomingToken); // TODO Remove token in case there is an error
+				Image image = new Image(null, null, null, null, null, null);
+				BusinessDetails businessDetails = new BusinessDetails(emspInfo.get().getName(),
+						emspInfo.get().getWebsiteUrl(), image);
+				Credentials credentials = new Credentials(incomingToken, externalOcpiApiUrl + "/ocpi/emsp/versions",
+						businessDetails, emspInfo.get().getPartyId(), emspInfo.get().getCountryCode());				
+				Credentials emspCredentials = ocpiApiClient.postCredentialsV211(token, credentialsUrl, credentials);
+				RegisteredCPOV211 registeredCPOV211 = registeredOperatorMapper.toRegisteredCPOV211(registeredCPO,
+						credentialsUrl, locationsUrl, incomingToken, emspCredentials.token());
+				updateRegisteredCPO(registeredCPOV211);
+			}
+		} catch (Exception e) {
+			String message = "Exception caught while performing handshake with registered CPO with key [%s]".formatted(key);
+			LOG.error(message);
+			throw new RuntimeException(message, e);
 		}
 	}
 
