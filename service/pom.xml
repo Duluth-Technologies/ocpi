@@ -48,6 +48,19 @@
 			<artifactId>api-ocpi-client</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
+		<!-- TEST DEPENDENCIES -->
+		<dependency>
+			<groupId>com.duluthtechnologies.ocpi</groupId>
+			<artifactId>testing</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.duluthtechnologies.ocpi</groupId>
+			<artifactId>persistence</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>

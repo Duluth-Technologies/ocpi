@@ -14,6 +14,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import com.duluthtechnologies.ocpi.api.client.OcpiApiClient;
 import com.duluthtechnologies.ocpi.core.configuration.CPOInfo;
 import com.duluthtechnologies.ocpi.core.model.Connector;
 import com.duluthtechnologies.ocpi.core.model.Connector.Status;
@@ -51,10 +52,13 @@ public class ConnectorServiceImpl implements ConnectorService {
 
 	private final RestTemplate restTemplate;
 
+	private final OcpiApiClient ocpiApiClient;
+
 	private final TaskExecutor taskExecutor;
 
 	public ConnectorServiceImpl(ConnectorStore connectorStore, ConnectorMapper connectorMapper, EvseMapper evseMapper,
-			TaskExecutor taskExecutor, RegisteredOperatorService registeredOperatorService, Optional<CPOInfo> cpoInfo) {
+			TaskExecutor taskExecutor, RegisteredOperatorService registeredOperatorService, Optional<CPOInfo> cpoInfo,
+			OcpiApiClient ocpiApiClient) {
 		super();
 		this.registeredOperatorService = registeredOperatorService;
 		this.connectorStore = connectorStore;
@@ -63,6 +67,7 @@ public class ConnectorServiceImpl implements ConnectorService {
 		this.cpoInfo = cpoInfo;
 		this.restTemplate = new RestTemplate();
 		this.restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+		this.ocpiApiClient = ocpiApiClient;
 		this.taskExecutor = taskExecutor;
 	}
 
@@ -83,48 +88,52 @@ public class ConnectorServiceImpl implements ConnectorService {
 
 	@Override
 	public Connector update(String key, ConnectorForm connectorForm) {
+		LOG.info("Updating Connector with key [{}]...", key);
 		ConnectorImpl connectorImpl = connectorMapper.toConnector(connectorForm);
 		return connectorStore.update(key, connectorImpl);
 	}
 
 	@Override
 	public void patch(String key, ConnectorForm connectorForm) {
+		LOG.info("Patching Connector with key [{}]...", key);
 		ConnectorImpl connectorImpl = connectorMapper.toConnector(connectorForm);
 		connectorStore.patch(key, connectorImpl);
 	}
 
 	@Override
 	public void delete(String key) {
+		LOG.info("Deleting Connector with key [{}]...", key);
 		connectorStore.delete(key);
 	}
 
 	@Override
 	public Connector refreshStatus(String key) {
-		Connector connector = getByKey(key);
-		if (connector.getEvse().getLocation() instanceof RegisteredCPOLocation registeredCPOLocation) {
-			RegisteredCPO registeredCPO = registeredCPOLocation.getRegisteredCPO();
-			if (registeredCPO instanceof RegisteredCPOV211 registeredCPOV211) {
-				HttpHeaders headers = new HttpHeaders();
-				headers.set("Authorization", "Token " + registeredCPOV211.getOutgoingToken());
-				HttpEntity entity = new HttpEntity<>(headers);
-				com.duluthtechnologies.ocpi.model.v211.EVSE evseV211 = restTemplate.exchange(
-						registeredCPOV211.getLocationsUrl() + "/" + registeredCPOV211.getCountryCode() + "/"
-								+ registeredCPOV211.getPartyId() + "/" + registeredCPOLocation.getOcpiId() + "/"
-								+ connector.getEvse().getOcpiId(),
-						HttpMethod.GET, entity,
-						new ParameterizedTypeReference<Response<com.duluthtechnologies.ocpi.model.v211.EVSE>>() {
-						}).getBody().data();
-				Connector.Status updatedStatus = evseMapper.toStatus(evseV211);
-				return connectorStore.updateStatus(key, updatedStatus);
+		LOG.debug("Refreshing status of Connector with key [{}]...", key);
+		try {
+			Connector connector = getByKey(key);
+			if (connector.getEvse().getLocation() instanceof RegisteredCPOLocation registeredCPOLocation) {
+				RegisteredCPO registeredCPO = registeredCPOLocation.getRegisteredCPO();
+				if (registeredCPO instanceof RegisteredCPOV211 registeredCPOV211) {
+					com.duluthtechnologies.ocpi.model.v211.EVSE evseV211 = ocpiApiClient.getEvse211(
+							registeredCPOV211.getOutgoingToken(), registeredCPOV211.getLocationsUrl(),
+							registeredCPOV211.getCountryCode(), registeredCPOV211.getPartyId(),
+							registeredCPOLocation.getOcpiId(), connector.getEvse().getOcpiId());
+					Connector.Status updatedStatus = evseMapper.toStatus(evseV211);
+					return connectorStore.updateStatus(key, updatedStatus);
+				} else {
+					String message = "Cannot refresh Connector with key [%s] as it belongs to a Registered CPO whose type [%s] is not supported"
+							.formatted(key, registeredCPO.getClass().getSimpleName());
+					LOG.error(message);
+					throw new RuntimeException(message);
+				}
 			} else {
-				String message = "Cannot refresh Connector with key [%s] as it belongs to a Registered CPO whose type [%s] is not supported"
-						.formatted(key, registeredCPO.getClass().getSimpleName());
+				String message = "Cannot refresh Connector with key [%s] as it doesn't belong to a Registered CPO"
+						.formatted(key);
 				LOG.error(message);
 				throw new RuntimeException(message);
 			}
-		} else {
-			String message = "Cannot refresh Connector with key [%s] as it doesn't belong to a Registered CPO"
-					.formatted(key);
+		} catch (Exception e) {
+			String message = "Exception caught while refreshing status of Connector with key [%s]".formatted(key);
 			LOG.error(message);
 			throw new RuntimeException(message);
 		}
@@ -147,7 +156,8 @@ public class ConnectorServiceImpl implements ConnectorService {
 		List<RegisteredEMSP> registeredEMSPs = registeredOperatorService.findEMSPs();
 		LOG.info("Publishing asynchronously status [{}] for Connector with key [{}] on EMSPs with key {}...", status,
 				key, registeredEMSPs.stream().map(RegisteredEMSP::getKey).toList());
-		// We compute the evsePatchStatus outside of the task executor so that we can reuse the Hibernate session
+		// We compute the evsePatchStatus outside of the task executor as there is no
+		// session in the task executor
 		// TODO Refactor
 		com.duluthtechnologies.ocpi.model.v211.EVSE evsePatchStatus = connectorMapper
 				.toEvsePatchStatus(connectorUpdated.getEvse());
@@ -158,14 +168,11 @@ public class ConnectorServiceImpl implements ConnectorService {
 				try {
 					if (registeredEMSP instanceof RegisteredEMSPV211 registeredEMSPV211) {
 						if (registeredEMSPV211.getOutgoingToken() != null
-								&& registeredEMSPV211.getLocationsUrl() != null) {							
-							HttpHeaders headers = new HttpHeaders();
-							headers.set("Authorization", "Token " + registeredEMSPV211.getOutgoingToken());
-							HttpEntity entity = new HttpEntity<>(evsePatchStatus, headers);
-							restTemplate.exchange(registeredEMSPV211.getLocationsUrl() + "/"
-									+ cpoInfo.get().getCountryCode() + "/" + cpoInfo.get().getPartyId() + "/"
-									+ connector.getEvse().getLocation().getOcpiId() + "/"
-									+ connector.getEvse().getOcpiId(), HttpMethod.PATCH, entity, Void.class);
+								&& registeredEMSPV211.getLocationsUrl() != null) {
+							ocpiApiClient.patchEvseV211(registeredEMSPV211.getOutgoingToken(),
+									registeredEMSPV211.getLocationsUrl(), cpoInfo.get().getCountryCode(),
+									cpoInfo.get().getPartyId(), connector.getEvse().getLocation().getOcpiId(),
+									connector.getEvse().getOcpiId(), evsePatchStatus);
 						}
 					}
 				} catch (Exception e) {

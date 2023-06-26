@@ -1,4 +1,4 @@
-module com.duluthtechnologies.ocpi.api.client {	
+open module com.duluthtechnologies.ocpi.api.client {	
 	requires spring.web;
 	requires com.duluthtechnologies.ocpi;
 	requires org.slf4j;

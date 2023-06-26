@@ -1,8 +1,6 @@
 package com.duluthtechnologies.ocpi.service.impl;
 
-import java.time.Duration;
 import java.time.Instant;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -10,17 +8,10 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
+import com.duluthtechnologies.ocpi.api.client.OcpiApiClient;
 import com.duluthtechnologies.ocpi.core.configuration.CPOInfo;
 import com.duluthtechnologies.ocpi.core.model.Connector;
 import com.duluthtechnologies.ocpi.core.model.Evse;
@@ -37,7 +28,6 @@ import com.duluthtechnologies.ocpi.core.service.RegisteredOperatorService;
 import com.duluthtechnologies.ocpi.core.store.ConnectorStore;
 import com.duluthtechnologies.ocpi.core.store.EvseStore;
 import com.duluthtechnologies.ocpi.core.store.LocationStore;
-import com.duluthtechnologies.ocpi.model.Response;
 import com.duluthtechnologies.ocpi.service.helper.KeyGenerator;
 import com.duluthtechnologies.ocpi.service.mapper.LocationMapper;
 import com.duluthtechnologies.ocpi.service.model.impl.LocationImpl;
@@ -47,7 +37,6 @@ import com.duluthtechnologies.ocpi.service.security.SecurityContextFiltered;
 import com.duluthtechnologies.ocpi.service.security.filter.LocationKeyRegisteredCPOFilter;
 import com.duluthtechnologies.ocpi.service.security.filter.RegisteredOperatorKeyFilter;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.NotEmpty;
 
@@ -70,21 +59,14 @@ public class LocationServiceImpl implements LocationService {
 
 	private final Optional<CPOInfo> cpoInfo;
 
-	private final RestTemplate restTemplate;
+	private final OcpiApiClient ocpiApiClient;
 
 	private final TaskExecutor taskExecutor;
-
-	private final TaskScheduler taskScheduler;
-
-	private final boolean emspSyncEnabled;
-
-	private final Integer emspSyncIntervalInSeconds;
 
 	public LocationServiceImpl(LocationStore locationStore, EvseStore evseStore, ConnectorStore connectorStore,
 			LocationMapper locationMapper, RegisteredOperatorService registeredOperatorService, EvseService evseService,
 			Optional<CPOInfo> cpoInfo, @Qualifier("service-task-executor") TaskExecutor taskExecutor,
-			@Qualifier("service-task-scheduler") TaskScheduler taskScheduler, Integer emspSyncIntervalInSeconds,
-			boolean emspSyncEnabled) {
+			OcpiApiClient ocpiApiClient) {
 		super();
 		this.locationStore = locationStore;
 		this.locationMapper = locationMapper;
@@ -93,80 +75,46 @@ public class LocationServiceImpl implements LocationService {
 		this.connectorStore = connectorStore;
 		this.registeredOperatorService = registeredOperatorService;
 		this.cpoInfo = cpoInfo;
-		this.restTemplate = new RestTemplate();
-		this.restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
+		this.ocpiApiClient = ocpiApiClient;
 		this.taskExecutor = taskExecutor;
-		this.taskScheduler = taskScheduler;
-		this.emspSyncEnabled = emspSyncEnabled;
-		this.emspSyncIntervalInSeconds = emspSyncIntervalInSeconds;
 	}
 
-	@PostConstruct
-	public void initialize() {
-		if (emspSyncEnabled) {
-			LOG.info("Scheduling EMSP synchronization at interval of [{}] seconds...", emspSyncIntervalInSeconds);
-			taskScheduler.scheduleAtFixedRate(() -> {
-				try {
-					synchronizeWithRegisteredCPOs();
-				} catch (Exception e) {
-					String message = "Exception caught while synchronizing with registered CPOs.";
-					LOG.error(message, e); // No retrhow to keep the job scheduled
+	@Transactional
+	public void synchronizeWithRegisteredCpo(String registeredCPOKey) {
+		LOG.debug("Synchronizing with Registered CPO with key [{}]...", registeredCPOKey);
+		try {
+			RegisteredCPO registeredCPO = registeredOperatorService.findCPOByKey(registeredCPOKey).get();
+			if (registeredCPO instanceof RegisteredCPOV211 registeredCPOV211) {
+				if (registeredCPOV211.getLocationsUrl() == null) {
+					LOG.warn(
+							"It is not possible to synchronize Locations with registered CPO with key [{}] as it doesn't have any Location URL.",
+							registeredCPO.getKey());
+					return;
 				}
-			}, Duration.ofSeconds(emspSyncIntervalInSeconds));
-		}
-	}
-
-	private void synchronizeWithRegisteredCPOs() {
-		LOG.debug("Synchronizing with registered CPOs...");
-		List<RegisteredCPO> registeredCPOs = registeredOperatorService.findCPOs();
-		for (RegisteredCPO registeredCPO : registeredCPOs) {
-			try {
-				synchronizeWithRegisteredCpo(registeredCPO);
-			} catch (Exception e) {
-				String message = "Exception caught while synchronizing with registered CPO with key [%s]"
-						.formatted(registeredCPO.getKey());
-				LOG.error(message, e);
-			}
-		}
-	}
-
-	private void synchronizeWithRegisteredCpo(RegisteredCPO registeredCPO) {
-		LOG.debug("Synchronizing with Registered CPO with key [{}]...", registeredCPO.getKey());
-		if (registeredCPO instanceof RegisteredCPOV211 registeredCPOV211
-				&& registeredCPOV211.getLocationsUrl() != null) {
-			List<com.duluthtechnologies.ocpi.model.v211.Location> locationV211s = new LinkedList<>();
-			HttpHeaders headers = new HttpHeaders();
-			headers.set("Authorization", "Token " + registeredCPOV211.getOutgoingToken());
-			HttpEntity entity = new HttpEntity<>(headers);
-			ResponseEntity<Response<List<com.duluthtechnologies.ocpi.model.v211.Location>>> responseEntity = restTemplate
-					.exchange(registeredCPOV211.getLocationsUrl(), HttpMethod.GET, entity,
-							new ParameterizedTypeReference<Response<List<com.duluthtechnologies.ocpi.model.v211.Location>>>() {
-							});
-			locationV211s.addAll(responseEntity.getBody().data());
-			List<String> linkHeaders = responseEntity.getHeaders().get("Link");
-			while (linkHeaders != null && !linkHeaders.isEmpty()) {
-				responseEntity = restTemplate.exchange(linkHeaders.get(0), HttpMethod.GET, entity,
-						new ParameterizedTypeReference<Response<List<com.duluthtechnologies.ocpi.model.v211.Location>>>() {
-						});
-				locationV211s.addAll(responseEntity.getBody().data());
-				linkHeaders = responseEntity.getHeaders().get("Link");
-			}
-			LOG.debug("Found [{}] Locations on registered CPO with key [{}].", locationV211s.size(),
-					registeredCPOV211.getKey());
-			for (com.duluthtechnologies.ocpi.model.v211.Location locationV211 : locationV211s) {
-				Optional<RegisteredCPOLocation> registeredCPOLocationOptional = locationStore
-						.findByCountryCodeAndPartyIdAndOcpiId(registeredCPO.getCountryCode(),
-								registeredCPO.getPartyId(), locationV211.id());
-				LocationForm locationForm = locationMapper.toLocationForm(locationV211);
-				if (registeredCPOLocationOptional.isEmpty()) {
-					createRegisteredCPOLocation(locationForm, registeredCPO.getKey());
-				} else {
-					updateRegisteredCPOLocation(registeredCPO.getKey(), locationForm);
+				List<com.duluthtechnologies.ocpi.model.v211.Location> locationV211s = ocpiApiClient
+						.getLocationsV211(registeredCPOV211.getOutgoingToken(), registeredCPOV211.getLocationsUrl());
+				LOG.debug("Found [{}] Locations on registered CPO with key [{}].", locationV211s.size(),
+						registeredCPOV211.getKey());
+				for (com.duluthtechnologies.ocpi.model.v211.Location locationV211 : locationV211s) {
+					Optional<RegisteredCPOLocation> registeredCPOLocationOptional = locationStore
+							.findByCountryCodeAndPartyIdAndOcpiId(registeredCPO.getCountryCode(),
+									registeredCPO.getPartyId(), locationV211.id());
+					LocationForm locationForm = locationMapper.toLocationForm(locationV211);
+					if (registeredCPOLocationOptional.isEmpty()) {
+						createRegisteredCPOLocation(locationForm, registeredCPO.getKey());
+					} else {
+						updateRegisteredCPOLocation(registeredCPOLocationOptional.get().getKey(), locationForm);
+					}
 				}
+			} else {
+				LOG.warn("Registered CPO with key [{}] is of type [{}] which is not handled.", registeredCPO.getKey(),
+						registeredCPO.getClass().getSimpleName());
 			}
-		} else {
-			LOG.warn("Registered CPO with key [{}] is of type [{}] which is not handled.", registeredCPO.getKey(),
-					registeredCPO.getClass().getSimpleName());
+		} catch (Exception e) {
+			String message = "Exception caught while synchronizing with registered CPO with key [%s]"
+					.formatted(registeredCPOKey);
+			LOG.error(message);
+			throw new RuntimeException(message, e);
 		}
 	}
 
@@ -217,15 +165,9 @@ public class LocationServiceImpl implements LocationService {
 								&& registeredEMSPV211.getLocationsUrl() != null) {
 							com.duluthtechnologies.ocpi.model.v211.Location locationV211 = locationMapper
 									.toLocationV211(location, locationLastUpdatedTime);
-							HttpHeaders headers = new HttpHeaders();
-							headers.set("Authorization", "Token " + registeredEMSPV211.getOutgoingToken());
-							HttpEntity entity = new HttpEntity<>(locationV211, headers);
-							com.duluthtechnologies.ocpi.model.v211.Location locationOnEmsp = restTemplate.exchange(
-									registeredEMSPV211.getLocationsUrl() + "/" + cpoInfo.get().getCountryCode() + "/"
-											+ cpoInfo.get().getPartyId() + "/" + location.getOcpiId(),
-									HttpMethod.PUT, entity,
-									new ParameterizedTypeReference<Response<com.duluthtechnologies.ocpi.model.v211.Location>>() {
-									}).getBody().data();
+							ocpiApiClient.putLocationV211(registeredEMSPV211.getOutgoingToken(),
+									registeredEMSPV211.getLocationsUrl(), cpoInfo.get().getCountryCode(),
+									cpoInfo.get().getPartyId(), location.getOcpiId(), locationV211);
 						}
 					}
 				} catch (Exception e) {
@@ -294,6 +236,8 @@ public class LocationServiceImpl implements LocationService {
 	public RegisteredCPOLocation updateRegisteredCPOLocation(
 			@SecurityContextFiltered(filter = LocationKeyRegisteredCPOFilter.class) String registeredCPOLocationKey,
 			LocationForm locationForm) {
+		LOG.info("Updating Registered CPO Location with key [{}]...", registeredCPOLocationKey);
+
 		// Mapping to Location object model
 		RegisteredCPOLocationImpl registeredCPOLocationImpl = locationMapper.toRegisteredCPOLocation(locationForm);
 		registeredCPOLocationImpl.setKey(registeredCPOLocationKey);

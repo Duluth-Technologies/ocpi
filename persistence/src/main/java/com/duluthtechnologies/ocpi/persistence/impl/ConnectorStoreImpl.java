@@ -51,11 +51,12 @@ public class ConnectorStoreImpl implements ConnectorStore {
 			return new RuntimeException(message);
 		});
 		ConnectorEntity connectorEntity = connectorEntityMapper.toConnectorEntity(connector, evseEntity);
-		List<Connector> connectors = evseEntity.getConnectors() == null ? new ArrayList<>()
-				: new ArrayList<>(evseEntity.getConnectors());
 		connectorEntity = connectorJPARepository.save(connectorEntity);
-		connectors.add(connectorEntity);
-		evseEntity.setConnectors(connectors);
+		if (evseEntity.getConnectors() != null) {
+			evseEntity.getConnectors().add(connectorEntity);
+		} else {
+			evseEntity.setConnectors(new ArrayList<>(List.of(connectorEntity)));
+		}
 		return connectorEntity;
 	}
 

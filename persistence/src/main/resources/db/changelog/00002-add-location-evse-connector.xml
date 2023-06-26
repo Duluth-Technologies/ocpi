@@ -9,7 +9,7 @@
         http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
         http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd">
 
-	<changeSet id="initial-schema" author="vincent">
+	<changeSet id="locations-svses-connectors" author="vincent">
 		<createSequence sequenceName="revinfo_seq"
 			incrementBy="50"></createSequence>
 		<createTable tableName="revinfo">
@@ -55,7 +55,7 @@
 				<constraints nullable="false"
 					referencedTableName="revinfo"
 					foreignKeyName="fk_locations_aud_revinfo"
-					referencedColumnNames="rev" unique="true" />
+					referencedColumnNames="rev" />
 			</column>
 			<column name="revtype" type="TINYINT">
 				<constraints nullable="false" />
@@ -94,7 +94,7 @@
 				<constraints nullable="false"
 					referencedTableName="revinfo"
 					foreignKeyName="fk_registered_cpo_locations_aud_revinfo"
-					referencedColumnNames="rev" unique="true" />
+					referencedColumnNames="rev" />
 			</column>
 			<column name="revtype" type="TINYINT">
 				<constraints nullable="false" />
@@ -135,7 +135,7 @@
 			<column name="rev" type="INTEGER">
 				<constraints nullable="false"
 					referencedTableName="revinfo" foreignKeyName="fk_evses_aud_revinfo"
-					referencedColumnNames="rev" unique="true" />
+					referencedColumnNames="rev" />
 			</column>
 			<column name="revtype" type="TINYINT">
 				<constraints nullable="false" />
@@ -189,7 +189,7 @@
 				<constraints nullable="false"
 					referencedTableName="revinfo"
 					foreignKeyName="fk_connectors_aud_revinfo"
-					referencedColumnNames="rev" unique="true" />
+					referencedColumnNames="rev" />
 			</column>
 			<column name="revtype" type="TINYINT">
 				<constraints nullable="false" />
@@ -215,7 +215,7 @@
 				<constraints nullable="false"
 					referencedTableName="revinfo"
 					foreignKeyName="fk_location_entity_evse_entity_aud_revinfo"
-					referencedColumnNames="rev" unique="true" />
+					referencedColumnNames="rev" />
 			</column>
 			<column name="revtype" type="TINYINT">
 				<constraints nullable="false" />
@@ -228,7 +228,7 @@
 				<constraints nullable="false"
 					referencedTableName="revinfo"
 					foreignKeyName="fk_evse_entity_connector_entity_aud_revinfo"
-					referencedColumnNames="rev" unique="true" />
+					referencedColumnNames="rev" />
 			</column>
 			<column name="revtype" type="TINYINT">
 				<constraints nullable="false" />

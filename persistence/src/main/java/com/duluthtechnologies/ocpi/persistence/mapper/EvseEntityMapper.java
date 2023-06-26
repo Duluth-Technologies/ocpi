@@ -24,12 +24,14 @@ public interface EvseEntityMapper {
 	EvseEntity toEvseEntity(Evse evse, LocationEntity locationEntity);
 
 	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "key", ignore = true)
 	@Mapping(target = "createdDate", ignore = true)
 	@Mapping(target = "connectors", ignore = true)
 	@Mapping(target = "location", ignore = true)
 	void updateEvseEntity(@MappingTarget EvseEntity evseEntity, Evse evse);
 
 	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "key", ignore = true)
 	@Mapping(target = "createdDate", ignore = true)
 	@Mapping(target = "connectors", ignore = true)
 	@Mapping(target = "location", ignore = true)

@@ -50,7 +50,7 @@ public class OcpiTokenFilter extends OncePerRequestFilter {
 		}
 		// Get OCPI token
 		final String token = header.split(" ")[1].trim();
-		LOG.debug("OCPI token has been provided.");
+		LOG.debug("OCPI token has been provided for request to path [{}].", path);
 		try {
 			Optional<RegisteredOperator> registeredOperator = registeredOperatorService.findByIncomingToken(token);
 			if (registeredOperator.isPresent()) {

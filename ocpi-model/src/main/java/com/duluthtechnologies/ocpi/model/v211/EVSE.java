@@ -1,11 +1,11 @@
 package com.duluthtechnologies.ocpi.model.v211;
 
-import java.security.DrbgParameters.Capability;
 import java.time.Instant;
 import java.util.List;
 
 import com.duluthtechnologies.ocpi.model.TimestampDeserializer;
 import com.duluthtechnologies.ocpi.model.TimestampSerializer;
+import com.duluthtechnologies.ocpi.model.v211.EVSE.Capability;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -87,5 +87,43 @@ public record EVSE(
 		 * created).
 		 */
 		@NotNull @JsonDeserialize(using = TimestampDeserializer.class) @JsonSerialize(using = TimestampSerializer.class) @JsonProperty("last_updated") Instant lastUpdated) {
+
+	/**
+	 * Capability Enum representing the capabilities of an EVSE.
+	 */
+	public enum Capability {
+
+		/**
+		 * The EVSE supports charging profiles. Sending Charging Profiles is not yet
+		 * supported by OCPI.
+		 */
+		CHARGING_PROFILE_CAPABLE,
+
+		/**
+		 * Charging at this EVSE can be payed with a credit card.
+		 */
+		CREDIT_CARD_PAYABLE,
+
+		/**
+		 * The EVSE can remotely be started/stopped.
+		 */
+		REMOTE_START_STOP_CAPABLE,
+
+		/**
+		 * The EVSE can be reserved.
+		 */
+		RESERVABLE,
+
+		/**
+		 * Charging at this EVSE can be authorized with a RFID token.
+		 */
+		RFID_READER,
+
+		/**
+		 * Connectors have mechanical lock that can be requested by the eMSP to be
+		 * unlocked.
+		 */
+		UNLOCK_CAPABLE
+	}
 
 }

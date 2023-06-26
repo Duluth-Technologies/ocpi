@@ -228,22 +228,63 @@ class EMSPIntegrationTest extends AbstractEMSPTest {
 		cpoTestInstance = ocpiContainerProvider.createCPOContainer(network, "FR", partyId, true);
 		
 		LOG.info("Creating Location on CPO...");
-		ConnectorCreationForm connectorCreationForm = new ConnectorCreationForm();
-		connectorCreationForm.setConnectorId("1");
-		connectorCreationForm.setFormat(Format.CABLE);
-		connectorCreationForm.setType(Type.IEC_62196_T2_COMBO);
-		connectorCreationForm.setMaximumAmperage(100);
-		connectorCreationForm.setPowerType(PowerType.DC);
-		connectorCreationForm.setMaximumVoltage(1000);
-		connectorCreationForm.setStatus(Connector.Status.AVAILABLE);
+		// First connector for first Evse
+		ConnectorCreationForm connectorCreationForm1 = new ConnectorCreationForm();
+		connectorCreationForm1.setConnectorId("1");
+		connectorCreationForm1.setFormat(Format.CABLE);
+		connectorCreationForm1.setType(Type.IEC_62196_T2_COMBO);
+		connectorCreationForm1.setMaximumAmperage(100);
+		connectorCreationForm1.setPowerType(PowerType.DC);
+		connectorCreationForm1.setMaximumVoltage(1000);
+		connectorCreationForm1.setStatus(Connector.Status.AVAILABLE);
 
-		EvseCreationForm evseCreationForm = new EvseCreationForm();
-		String evseId = UUID.randomUUID().toString();
-		String evseOcpiId = UUID.randomUUID().toString();
-		evseCreationForm.setEvseId(evseId);
-		evseCreationForm.setOcpiId(evseOcpiId);
-		evseCreationForm.setConnectors(List.of(connectorCreationForm));
+		// Second connector for first Evse
+		ConnectorCreationForm connectorCreationForm2 = new ConnectorCreationForm();
+		connectorCreationForm2.setConnectorId("2");
+		connectorCreationForm2.setFormat(Format.CABLE);
+		connectorCreationForm2.setType(Type.IEC_62196_T2_COMBO);
+		connectorCreationForm2.setMaximumAmperage(100);
+		connectorCreationForm2.setPowerType(PowerType.DC);
+		connectorCreationForm2.setMaximumVoltage(1000);
+		connectorCreationForm2.setStatus(Connector.Status.AVAILABLE);
 
+		// First Evse
+		EvseCreationForm evseCreationForm1 = new EvseCreationForm();
+		String evseId1 = UUID.randomUUID().toString();
+		String evseOcpiId1 = UUID.randomUUID().toString();
+		evseCreationForm1.setEvseId(evseId1);
+		evseCreationForm1.setOcpiId(evseOcpiId1);
+		evseCreationForm1.setConnectors(List.of(connectorCreationForm1, connectorCreationForm2));
+
+		// Third connector for second Evse
+		ConnectorCreationForm connectorCreationForm3 = new ConnectorCreationForm();
+		connectorCreationForm3.setConnectorId("1");
+		connectorCreationForm3.setFormat(Format.CABLE);
+		connectorCreationForm3.setType(Type.IEC_62196_T2_COMBO);
+		connectorCreationForm3.setMaximumAmperage(100);
+		connectorCreationForm3.setPowerType(PowerType.DC);
+		connectorCreationForm3.setMaximumVoltage(1000);
+		connectorCreationForm3.setStatus(Connector.Status.AVAILABLE);
+
+		// Fourth connector for second Evse
+		ConnectorCreationForm connectorCreationForm4 = new ConnectorCreationForm();
+		connectorCreationForm4.setConnectorId("2");
+		connectorCreationForm4.setFormat(Format.CABLE);
+		connectorCreationForm4.setType(Type.IEC_62196_T2_COMBO);
+		connectorCreationForm4.setMaximumAmperage(100);
+		connectorCreationForm4.setPowerType(PowerType.DC);
+		connectorCreationForm4.setMaximumVoltage(1000);
+		connectorCreationForm4.setStatus(Connector.Status.AVAILABLE);
+
+		// Second Evse
+		EvseCreationForm evseCreationForm2 = new EvseCreationForm();
+		String evseId2 = UUID.randomUUID().toString();
+		String evseOcpiId2 = UUID.randomUUID().toString();
+		evseCreationForm2.setEvseId(evseId2);
+		evseCreationForm2.setOcpiId(evseOcpiId2);
+		evseCreationForm2.setConnectors(List.of(connectorCreationForm3, connectorCreationForm4));
+
+		// Location
 		LocationCreationForm locationCreationForm = new LocationCreationForm();
 		String address = RandomStringUtils.random(16, true, false);
 		String city = RandomStringUtils.random(16, true, false);
@@ -258,7 +299,7 @@ class EMSPIntegrationTest extends AbstractEMSPTest {
 		locationCreationForm.setLatitude(latitude);
 		locationCreationForm.setLongitude(longitude);
 		locationCreationForm.setCountryCode("FRA");
-		locationCreationForm.setEvses(List.of(evseCreationForm));
+		locationCreationForm.setEvses(List.of(evseCreationForm1, evseCreationForm2)); // Here the Location is linked to two Evses
 		LocationView locationView = restTemplate.postForEntity(cpoTestInstance.getExternalUrl() + "/api/admin/location",
 				locationCreationForm, LocationView.class).getBody();
 
@@ -311,28 +352,66 @@ class EMSPIntegrationTest extends AbstractEMSPTest {
 		assertThat(cpoLocationView.getLatitude()).isCloseTo(latitude, within(1e-6));
 		assertThat(cpoLocationView.getLongitude()).isCloseTo(longitude, within(1e-6));
 
-		EvseView evseView = cpoLocationView.getEvses().get(0);
-		assertThat(evseView.getEvseId()).isEqualTo(evseId);
-		assertThat(evseView.getOcpiId()).isEqualTo(evseOcpiId);
+		// check that we have two EVSEs
+		assertThat(cpoLocationView.getEvses().size()).isEqualTo(2);
 
-		ConnectorView connectorView = evseView.getConnectors().get(0);
-		assertThat(evseView).isNotNull();
-		assertThat(connectorView).isNotNull();
-		assertThat(connectorView.getKey()).isNotNull();
-		assertThat(connectorView.getConnectorId()).isEqualTo("1");
-		assertThat(connectorView.getFormat()).isEqualTo(Format.CABLE);
-		assertThat(connectorView.getType()).isEqualTo(Type.IEC_62196_T2_COMBO);
-		assertThat(connectorView.getMaximumAmperage()).isEqualTo(100);
-		assertThat(connectorView.getPowerType()).isEqualTo(PowerType.DC);
-		assertThat(connectorView.getMaximumVoltage()).isEqualTo(1000);
-		assertThat(connectorView.getStatus()).isEqualTo(Connector.Status.AVAILABLE);
+		// checking first EVSE
+		EvseView evseView1 = cpoLocationView.getEvses().get(0);
+		assertThat(evseView1.getEvseId()).isEqualTo(evseId1);
+		assertThat(evseView1.getOcpiId()).isEqualTo(evseOcpiId1);
+
+		// checking first EVSE's connectors
+		assertThat(evseView1.getConnectors().size()).isEqualTo(2);
+
+		ConnectorView connectorView1 = evseView1.getConnectors().get(0);
+		assertThat(connectorView1.getConnectorId()).isEqualTo("1");
+		assertThat(connectorView1.getFormat()).isEqualTo(Format.CABLE);
+		assertThat(connectorView1.getType()).isEqualTo(Type.IEC_62196_T2_COMBO);
+		assertThat(connectorView1.getMaximumAmperage()).isEqualTo(100);
+		assertThat(connectorView1.getPowerType()).isEqualTo(PowerType.DC);
+		assertThat(connectorView1.getMaximumVoltage()).isEqualTo(1000);
+		assertThat(connectorView1.getStatus()).isEqualTo(Connector.Status.AVAILABLE);
+
+		ConnectorView connectorView2 = evseView1.getConnectors().get(1);
+		assertThat(connectorView2.getConnectorId()).isEqualTo("2");
+		assertThat(connectorView2.getFormat()).isEqualTo(Format.CABLE);
+		assertThat(connectorView2.getType()).isEqualTo(Type.IEC_62196_T2_COMBO);
+		assertThat(connectorView2.getMaximumAmperage()).isEqualTo(100);
+		assertThat(connectorView2.getPowerType()).isEqualTo(PowerType.DC);
+		assertThat(connectorView2.getMaximumVoltage()).isEqualTo(1000);
+		assertThat(connectorView2.getStatus()).isEqualTo(Connector.Status.AVAILABLE);
+
+		// checking second EVSE
+		EvseView evseView2 = cpoLocationView.getEvses().get(1);
+		assertThat(evseView2.getEvseId()).isEqualTo(evseId2);
+		assertThat(evseView2.getOcpiId()).isEqualTo(evseOcpiId2);
+
+		// checking second EVSE's connectors
+		assertThat(evseView2.getConnectors().size()).isEqualTo(2);
+
+		ConnectorView connectorView3 = evseView2.getConnectors().get(0);
+		assertThat(connectorView3.getConnectorId()).isEqualTo("1");
+		assertThat(connectorView3.getFormat()).isEqualTo(Format.CABLE);
+		assertThat(connectorView3.getType()).isEqualTo(Type.IEC_62196_T2_COMBO);
+		assertThat(connectorView3.getMaximumAmperage()).isEqualTo(100);
+		assertThat(connectorView3.getPowerType()).isEqualTo(PowerType.DC);
+		assertThat(connectorView3.getMaximumVoltage()).isEqualTo(1000);
+		assertThat(connectorView3.getStatus()).isEqualTo(Connector.Status.AVAILABLE);
+
+		ConnectorView connectorView4 = evseView2.getConnectors().get(1);
+		assertThat(connectorView4.getConnectorId()).isEqualTo("2");
+		assertThat(connectorView4.getFormat()).isEqualTo(Format.CABLE);
+		assertThat(connectorView4.getType()).isEqualTo(Type.IEC_62196_T2_COMBO);
+		assertThat(connectorView4.getMaximumAmperage()).isEqualTo(100);
+		assertThat(connectorView4.getPowerType()).isEqualTo(PowerType.DC);
+		assertThat(connectorView4.getMaximumVoltage()).isEqualTo(1000);
+		assertThat(connectorView4.getStatus()).isEqualTo(Connector.Status.AVAILABLE);
 
 		LOG.info("Retrieving EMSP location from the CPO...");
 		locationView = restTemplate.getForEntity(
 				cpoTestInstance.getExternalUrl() + "/api/ops/emsp/" + emspKey + "/location/" + locationView.getKey(),
 				LocationView.class).getBody();
 
-		assertThat(locationView).isNotNull();
 		assertThat(locationView.getAddress()).isEqualTo(address);
 		assertThat(locationView.getCity()).isEqualTo(city);
 		assertThat(locationView.getCountryCode()).isEqualTo("FRA");
@@ -341,20 +420,60 @@ class EMSPIntegrationTest extends AbstractEMSPTest {
 		assertThat(locationView.getLatitude()).isCloseTo(latitude, within(1e-6));
 		assertThat(locationView.getLongitude()).isCloseTo(longitude, within(1e-6));
 
-		evseView = locationView.getEvses().get(0);
-		assertThat(evseView).isNotNull();
-		assertThat(evseView.getEvseId()).isEqualTo(evseId);
-		assertThat(evseView.getOcpiId()).isEqualTo(evseOcpiId);
+		// check that we have two EVSEs
+		assertThat(locationView.getEvses().size()).isEqualTo(2);
 
-		connectorView = evseView.getConnectors().get(0);
-		assertThat(connectorView).isNotNull();
-		assertThat(connectorView.getConnectorId()).isEqualTo("1");
-		assertThat(connectorView.getFormat()).isEqualTo(Format.CABLE);
-		assertThat(connectorView.getType()).isEqualTo(Type.IEC_62196_T2_COMBO);
-		assertThat(connectorView.getMaximumAmperage()).isEqualTo(100);
-		assertThat(connectorView.getPowerType()).isEqualTo(PowerType.DC);
-		assertThat(connectorView.getMaximumVoltage()).isEqualTo(1000);
-		assertThat(connectorView.getStatus()).isEqualTo(Connector.Status.AVAILABLE);
+		// checking first EVSE
+		evseView1 = locationView.getEvses().get(0);
+		assertThat(evseView1.getEvseId()).isEqualTo(evseId1);
+		assertThat(evseView1.getOcpiId()).isEqualTo(evseOcpiId1);
+
+		// checking first EVSE's connectors
+		assertThat(evseView1.getConnectors().size()).isEqualTo(2);
+
+		connectorView1 = evseView1.getConnectors().get(0);
+		assertThat(connectorView1.getConnectorId()).isEqualTo("1");
+		assertThat(connectorView1.getFormat()).isEqualTo(Format.CABLE);
+		assertThat(connectorView1.getType()).isEqualTo(Type.IEC_62196_T2_COMBO);
+		assertThat(connectorView1.getMaximumAmperage()).isEqualTo(100);
+		assertThat(connectorView1.getPowerType()).isEqualTo(PowerType.DC);
+		assertThat(connectorView1.getMaximumVoltage()).isEqualTo(1000);
+		assertThat(connectorView1.getStatus()).isEqualTo(Connector.Status.AVAILABLE);
+
+		connectorView2 = evseView1.getConnectors().get(1);
+		assertThat(connectorView2.getConnectorId()).isEqualTo("2");
+		assertThat(connectorView2.getFormat()).isEqualTo(Format.CABLE);
+		assertThat(connectorView2.getType()).isEqualTo(Type.IEC_62196_T2_COMBO);
+		assertThat(connectorView2.getMaximumAmperage()).isEqualTo(100);
+		assertThat(connectorView2.getPowerType()).isEqualTo(PowerType.DC);
+		assertThat(connectorView2.getMaximumVoltage()).isEqualTo(1000);
+		assertThat(connectorView2.getStatus()).isEqualTo(Connector.Status.AVAILABLE);
+
+		// checking second EVSE
+		evseView2 = locationView.getEvses().get(1);
+		assertThat(evseView2.getEvseId()).isEqualTo(evseId2);
+		assertThat(evseView2.getOcpiId()).isEqualTo(evseOcpiId2);
+
+		// checking second EVSE's connectors
+		assertThat(evseView2.getConnectors().size()).isEqualTo(2);
+
+		connectorView3 = evseView2.getConnectors().get(0);
+		assertThat(connectorView3.getConnectorId()).isEqualTo("1");
+		assertThat(connectorView3.getFormat()).isEqualTo(Format.CABLE);
+		assertThat(connectorView3.getType()).isEqualTo(Type.IEC_62196_T2_COMBO);
+		assertThat(connectorView3.getMaximumAmperage()).isEqualTo(100);
+		assertThat(connectorView3.getPowerType()).isEqualTo(PowerType.DC);
+		assertThat(connectorView3.getMaximumVoltage()).isEqualTo(1000);
+		assertThat(connectorView3.getStatus()).isEqualTo(Connector.Status.AVAILABLE);
+
+		connectorView4 = evseView2.getConnectors().get(1);
+		assertThat(connectorView4.getConnectorId()).isEqualTo("2");
+		assertThat(connectorView4.getFormat()).isEqualTo(Format.CABLE);
+		assertThat(connectorView4.getType()).isEqualTo(Type.IEC_62196_T2_COMBO);
+		assertThat(connectorView4.getMaximumAmperage()).isEqualTo(100);
+		assertThat(connectorView4.getPowerType()).isEqualTo(PowerType.DC);
+		assertThat(connectorView4.getMaximumVoltage()).isEqualTo(1000);
+		assertThat(connectorView4.getStatus()).isEqualTo(Connector.Status.AVAILABLE);
 
 	}
 
