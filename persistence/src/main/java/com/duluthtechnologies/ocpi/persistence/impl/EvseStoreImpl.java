@@ -47,11 +47,12 @@ public class EvseStoreImpl implements EvseStore {
 			return new RuntimeException(message);
 		});
 		EvseEntity evseEntity = evseEntityMapper.toEvseEntity(evse, locationEntity);
-		List<Evse> evses = locationEntity.getEvses() == null ? new ArrayList<>()
-				: new ArrayList<>(locationEntity.getEvses());
 		evseEntity = evseJPARepository.save(evseEntity);
-		evses.add(evseEntity);
-		locationEntity.setEvses(evses);
+		if (locationEntity.getEvses() != null) {
+			locationEntity.getEvses().add(evseEntity);
+		} else {
+			locationEntity.setEvses(new ArrayList<>(List.of(evseEntity)));
+		}
 		return evseEntity;
 	}
 

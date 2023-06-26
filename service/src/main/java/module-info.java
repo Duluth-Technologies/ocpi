@@ -1,4 +1,4 @@
-module com.duluthtechnologies.ocpi.service {
+open module com.duluthtechnologies.ocpi.service {
 	requires spring.context;
 	requires org.apache.commons.lang3;
 	requires com.duluthtechnologies.ocpi.core;

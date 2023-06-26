@@ -55,6 +55,7 @@ public class EmspServiceImpl implements EmspService {
 			LOG.error(message);
 			return new RuntimeException(message);
 		});
+		// Retrieving the Location to get the OCPI id
 		Location location = locationStore.getByKey(locationKey);
 		if (registeredEMSP instanceof RegisteredEMSPV211 registeredEMSPV211) {
 			HttpHeaders headers = new HttpHeaders();

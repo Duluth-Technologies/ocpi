@@ -55,11 +55,11 @@ public class EvseServiceImpl implements EvseService {
 			connectorService.create(evse.getKey(), connectorForm);
 		}
 		return evseStore.findByKey(evse.getKey()).get();
-
 	}
 
 	@Override
 	public Evse update(String key, EvseForm evseForm) {
+		LOG.info("Updating EVSE with key [{}]...", key);
 		// Convert form to model
 		EvseImpl evseImpl = evseMapper.toEvse(evseForm);
 		// Update the EVSE

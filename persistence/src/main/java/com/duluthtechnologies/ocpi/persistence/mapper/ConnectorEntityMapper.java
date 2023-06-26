@@ -23,11 +23,13 @@ public interface ConnectorEntityMapper {
 	ConnectorEntity toConnectorEntity(Connector connector, EvseEntity evseEntity);
 
 	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "key", ignore = true)
 	@Mapping(target = "createdDate", ignore = true)
 	@Mapping(target = "evse", ignore = true)
 	void updateConnectorEntity(@MappingTarget ConnectorEntity connectorEntity, Connector connectors);
 
 	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "key", ignore = true)
 	@Mapping(target = "createdDate", ignore = true)
 	@Mapping(target = "evse", ignore = true)
 	@BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE, nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS)
