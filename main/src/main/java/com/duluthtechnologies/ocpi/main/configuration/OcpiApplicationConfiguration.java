@@ -2,7 +2,9 @@ package com.duluthtechnologies.ocpi.main.configuration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -11,6 +13,8 @@ import com.duluthtechnologies.ocpi.core.configuration.EMSPInfo;
 import com.duluthtechnologies.ocpi.main.configuration.OcpiApplicationProperties.Cpo;
 import com.duluthtechnologies.ocpi.main.configuration.OcpiApplicationProperties.Emsp;
 
+// We want to make sure this Configuration is applied before the Controllers, as some depend on the existence of EMSPInfo and CPOInfo beans
+@AutoConfigureBefore(value = WebMvcAutoConfiguration.class)
 @Configuration
 public class OcpiApplicationConfiguration {
 

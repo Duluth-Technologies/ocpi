@@ -44,7 +44,7 @@ public class LocationSynchronizer {
 	@PostConstruct
 	public void initialize() {
 		if (emspSyncEnabled) {
-			LOG.info("Scheduling EMSP synchronization at interval of [{}] seconds...", emspSyncIntervalInSeconds);
+			LOG.info("Scheduling EMSP Location synchronization at interval of [{}] seconds...", emspSyncIntervalInSeconds);
 			taskScheduler.scheduleAtFixedRate(() -> {
 				try {
 					synchronizeWithRegisteredCPOs();
@@ -53,6 +53,8 @@ public class LocationSynchronizer {
 					LOG.error(message, e); // No retrhow to keep the job scheduled
 				}
 			}, Duration.ofSeconds(emspSyncIntervalInSeconds));
+		} else {
+			LOG.info("Scheduling EMSP Location synchronization is disabled.");
 		}
 	}
 
