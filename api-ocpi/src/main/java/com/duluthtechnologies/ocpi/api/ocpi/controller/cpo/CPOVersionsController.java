@@ -32,7 +32,7 @@ public class CPOVersionsController {
 	private String externalOcpiApiUrl;
 
 	@GetMapping
-	@Authenticated(type = AuthenticatedType.CPO)
+	@Authenticated(type = AuthenticatedType.EMSP)
 	public ResponseEntity<Response<List<Version>>> getVersions() {
 		LOG.debug("Returning CPO versions...");
 		Response<List<Version>> response = new Response<>(
