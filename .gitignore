@@ -15,6 +15,7 @@ buildNumber.properties
 # Eclipse Core
 .project
 **/.settings
+**/bin
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
 # VSCode

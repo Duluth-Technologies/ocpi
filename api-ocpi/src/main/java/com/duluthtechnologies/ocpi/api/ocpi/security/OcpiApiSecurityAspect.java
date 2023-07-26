@@ -20,7 +20,7 @@ public class OcpiApiSecurityAspect {
 
 	private static final Logger LOG = LoggerFactory.getLogger(OcpiApiSecurityAspect.class);
 
-	@Around("@within(com.duluthtechnologies.ocpi.api.ocpi.annotation.Authenticated)")
+	@Around("@within(com.duluthtechnologies.ocpi.api.ocpi.annotation.Authenticated) || @annotation(com.duluthtechnologies.ocpi.api.ocpi.annotation.Authenticated)")
 	public Object enforceAuthenticated(ProceedingJoinPoint joinPoint) throws Throwable {
 		MethodSignature signature = (MethodSignature) joinPoint.getSignature();
 		Method method = signature.getMethod();
