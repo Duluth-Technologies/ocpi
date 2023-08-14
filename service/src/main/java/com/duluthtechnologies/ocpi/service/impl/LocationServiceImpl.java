@@ -11,7 +11,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
 
-import com.duluthtechnologies.ocpi.api.client.OcpiApiClient;
+import com.duluthtechnologies.ocpi.api.client.OcpiCPOApiV211Client;
+import com.duluthtechnologies.ocpi.api.client.OcpiEMSPApiV211Client;
 import com.duluthtechnologies.ocpi.core.configuration.CPOInfo;
 import com.duluthtechnologies.ocpi.core.model.Connector;
 import com.duluthtechnologies.ocpi.core.model.Evse;
@@ -59,14 +60,16 @@ public class LocationServiceImpl implements LocationService {
 
 	private final Optional<CPOInfo> cpoInfo;
 
-	private final OcpiApiClient ocpiApiClient;
+	private final OcpiCPOApiV211Client ocpiCPOApiV211Client;
+
+	private final OcpiEMSPApiV211Client ocpiEMSPApiV211Client;
 
 	private final TaskExecutor taskExecutor;
 
 	public LocationServiceImpl(LocationStore locationStore, EvseStore evseStore, ConnectorStore connectorStore,
 			LocationMapper locationMapper, RegisteredOperatorService registeredOperatorService, EvseService evseService,
 			Optional<CPOInfo> cpoInfo, @Qualifier("service-task-executor") TaskExecutor taskExecutor,
-			OcpiApiClient ocpiApiClient) {
+			OcpiCPOApiV211Client ocpiCPOApiV211Client, OcpiEMSPApiV211Client ocpiEMSPApiV211Client) {
 		super();
 		this.locationStore = locationStore;
 		this.locationMapper = locationMapper;
@@ -75,7 +78,8 @@ public class LocationServiceImpl implements LocationService {
 		this.connectorStore = connectorStore;
 		this.registeredOperatorService = registeredOperatorService;
 		this.cpoInfo = cpoInfo;
-		this.ocpiApiClient = ocpiApiClient;
+		this.ocpiCPOApiV211Client = ocpiCPOApiV211Client;
+		this.ocpiEMSPApiV211Client = ocpiEMSPApiV211Client;
 		this.taskExecutor = taskExecutor;
 	}
 
@@ -91,7 +95,7 @@ public class LocationServiceImpl implements LocationService {
 							registeredCPO.getKey());
 					return;
 				}
-				List<com.duluthtechnologies.ocpi.model.v211.Location> locationV211s = ocpiApiClient
+				List<com.duluthtechnologies.ocpi.model.v211.Location> locationV211s = ocpiCPOApiV211Client
 						.getLocationsV211(registeredCPOV211.getOutgoingToken(), registeredCPOV211.getLocationsUrl());
 				LOG.debug("Found [{}] Locations on registered CPO with key [{}].", locationV211s.size(),
 						registeredCPOV211.getKey());
@@ -165,7 +169,7 @@ public class LocationServiceImpl implements LocationService {
 								&& registeredEMSPV211.getLocationsUrl() != null) {
 							com.duluthtechnologies.ocpi.model.v211.Location locationV211 = locationMapper
 									.toLocationV211(location, locationLastUpdatedTime);
-							ocpiApiClient.putLocationV211(registeredEMSPV211.getOutgoingToken(),
+							ocpiEMSPApiV211Client.putLocationV211(registeredEMSPV211.getOutgoingToken(),
 									registeredEMSPV211.getLocationsUrl(), cpoInfo.get().getCountryCode(),
 									cpoInfo.get().getPartyId(), location.getOcpiId(), locationV211);
 						}
@@ -306,6 +310,7 @@ public class LocationServiceImpl implements LocationService {
 	@Override
 	public Page<Location> findLocation(@NotEmpty String countryCode, @NotEmpty String partyId, Instant dateFrom,
 			Instant dateTo, Integer offset, Integer limit) {
+		// Currently we only return the owned Locations as a CPO
 		if (countryCode.equals(cpoInfo.get().getCountryCode()) && partyId.equals(cpoInfo.get().getPartyId())) {
 			return locationStore.findNotRegisteredLocations(dateFrom, dateTo, offset, limit);
 		} else {

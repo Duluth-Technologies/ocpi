@@ -8,6 +8,8 @@ public class RegisteredEMSPV211View extends RegisteredEMSPView {
 
 	private String locationsUrl;
 
+	private String sessionsUrl;
+
 	public String getCredentialsUrl() {
 		return credentialsUrl;
 	}
@@ -22,6 +24,14 @@ public class RegisteredEMSPV211View extends RegisteredEMSPView {
 
 	public void setLocationsUrl(String locationsUrl) {
 		this.locationsUrl = locationsUrl;
+	}
+
+	public String getSessionsUrl() {
+		return sessionsUrl;
+	}
+
+	public void setSessionsUrl(String sessionsUrl) {
+		this.sessionsUrl = sessionsUrl;
 	}
 
 }

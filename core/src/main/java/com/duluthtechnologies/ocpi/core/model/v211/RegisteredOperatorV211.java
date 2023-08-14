@@ -7,4 +7,6 @@ public interface RegisteredOperatorV211 extends RegisteredOperator {
 	String getCredentialsUrl();
 
 	String getLocationsUrl();
+
+	String getSessionsUrl();
 }

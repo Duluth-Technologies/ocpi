@@ -1,5 +1,6 @@
 package com.duluthtechnologies.ocpi.api.controller;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,19 +11,29 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.duluthtechnologies.ocpi.api.dto.CPOLocationView;
+import com.duluthtechnologies.ocpi.api.dto.ChargingSessionView;
 import com.duluthtechnologies.ocpi.api.dto.ConnectorView;
 import com.duluthtechnologies.ocpi.api.dto.LocationView;
+import com.duluthtechnologies.ocpi.api.dto.RegisteredEMSPChargingSessionForm;
+import com.duluthtechnologies.ocpi.api.dto.RegisteredEMSPChargingSessionView;
+import com.duluthtechnologies.ocpi.api.mapper.ChargingSessionDTOMapper;
 import com.duluthtechnologies.ocpi.api.mapper.ConnectorDTOMapper;
 import com.duluthtechnologies.ocpi.api.mapper.LocationDTOMapper;
 import com.duluthtechnologies.ocpi.api.mapper.RegisteredOperatorDTOMapper;
+import com.duluthtechnologies.ocpi.core.model.ChargingSession;
 import com.duluthtechnologies.ocpi.core.model.Connector;
 import com.duluthtechnologies.ocpi.core.model.Location;
 import com.duluthtechnologies.ocpi.core.model.RegisteredCPOLocation;
+import com.duluthtechnologies.ocpi.core.model.RegisteredEMSPChargingSession;
+import com.duluthtechnologies.ocpi.core.service.ChargingSessionService;
+import com.duluthtechnologies.ocpi.core.service.ChargingSessionService.RegisteredEMSPChargingSessionCreationForm;
 import com.duluthtechnologies.ocpi.core.service.ConnectorService;
 import com.duluthtechnologies.ocpi.core.service.EmspService;
 import com.duluthtechnologies.ocpi.core.service.LocationService;
@@ -52,12 +63,17 @@ public class OpsController {
 
 	private final ConnectorService connectorService;
 
+	private final ChargingSessionService chargingSessionService;
+
 	private final ConnectorDTOMapper connectorDTOMapper;
+
+	private final ChargingSessionDTOMapper chargingSessionDTOMapper;
 
 	public OpsController(RegisteredOperatorService registeredOperatorService,
 			RegisteredOperatorDTOMapper registeredOperatorMapper, LocationService locationService,
 			LocationDTOMapper locationMapper, ConnectorService connectorService, ConnectorDTOMapper connectorDTOMapper,
-			Optional<EmspService> emspService) {
+			Optional<EmspService> emspService, ChargingSessionService chargingSessionService,
+			ChargingSessionDTOMapper chargingSessionDTOMapper) {
 		super();
 		this.registeredOperatorService = registeredOperatorService;
 		this.emspService = emspService;
@@ -65,7 +81,9 @@ public class OpsController {
 		this.locationService = locationService;
 		this.locationMapper = locationMapper;
 		this.connectorService = connectorService;
+		this.chargingSessionService = chargingSessionService;
 		this.connectorDTOMapper = connectorDTOMapper;
+		this.chargingSessionDTOMapper = chargingSessionDTOMapper;
 	}
 
 	@Operation(summary = "Retrieve Locations of a CPO")
@@ -108,6 +126,52 @@ public class OpsController {
 		Location location = emspService.get().getLocation(emspKey, locationKey);
 		LocationView locationView = locationMapper.toLocationView(location);
 		return ResponseEntity.ok(locationView);
+	}
+
+	@Operation(summary = "Create Charging Session")
+	@PostMapping("/charging-session")
+	public ResponseEntity<RegisteredEMSPChargingSessionView> createChargingSession(
+			@RequestBody RegisteredEMSPChargingSessionForm registeredEMSPChargingSessionForm) {
+		LOG.info("Creating Registered EMSP Charging Session [{}]...", registeredEMSPChargingSessionForm);
+		RegisteredEMSPChargingSessionCreationForm registeredEMSPChargingSessionCreationForm = chargingSessionDTOMapper
+				.toRegisteredEMSPChargingSessionCreationForm(registeredEMSPChargingSessionForm);
+		RegisteredEMSPChargingSession registeredEMSPChargingSession = chargingSessionService
+				.createRegisteredEMSPChargingSession(registeredEMSPChargingSessionCreationForm);
+		RegisteredEMSPChargingSessionView registeredEMSPChargingSessionView = chargingSessionDTOMapper
+				.toRegisteredEMSPChargingSessionView(registeredEMSPChargingSession);
+		return ResponseEntity.ok(registeredEMSPChargingSessionView);
+	}
+
+	@Operation(summary = "Update Charging Session")
+	@PutMapping("/charging-session")
+	public ResponseEntity<RegisteredEMSPChargingSessionView> updateChargingSession(
+			@RequestBody RegisteredEMSPChargingSessionForm registeredEMSPChargingSessionForm) {
+		com.duluthtechnologies.ocpi.core.service.ChargingSessionService.RegisteredEMSPChargingSessionForm chargingSessionServiceRegisteredEMSPChargingSessionForm = chargingSessionDTOMapper
+				.toRegisteredEMSPChargingSessionForm(registeredEMSPChargingSessionForm);
+		RegisteredEMSPChargingSession registeredEMSPChargingSession = chargingSessionService
+				.updateRegisteredEMSPChargingSession(chargingSessionServiceRegisteredEMSPChargingSessionForm);
+		RegisteredEMSPChargingSessionView registeredEMSPChargingSessionView = chargingSessionDTOMapper
+				.toRegisteredEMSPChargingSessionView(registeredEMSPChargingSession);
+		return ResponseEntity.ok(registeredEMSPChargingSessionView);
+	}
+
+	@Operation(summary = "Get Charging Session")
+	@GetMapping("/charging-session")
+	public ResponseEntity<List<ChargingSessionView>> getChargingSession(@RequestParam Instant dateFrom, Instant dateTo,
+			@RequestParam(required = false) String connectorKey) {
+		List<ChargingSession> chargingSessions = chargingSessionService.findChargingSessions(dateFrom, dateTo,
+				Optional.ofNullable(connectorKey));
+		List<ChargingSessionView> chargingSessionViews = chargingSessions.stream()
+				.map(chargingSessionDTOMapper::toChargingSessionView).toList();
+		return ResponseEntity.ok(chargingSessionViews);
+	}
+
+	@Operation(summary = "Get Charging Session by key")
+	@GetMapping("/charging-session/{key}")
+	public ResponseEntity<ChargingSessionView> getChargingSessionByKey(@PathVariable String key) {
+		ChargingSession chargingSession = chargingSessionService.getByKey(key);
+		ChargingSessionView chargingSessionView = chargingSessionDTOMapper.toChargingSessionView(chargingSession);
+		return ResponseEntity.ok(chargingSessionView);
 	}
 
 }

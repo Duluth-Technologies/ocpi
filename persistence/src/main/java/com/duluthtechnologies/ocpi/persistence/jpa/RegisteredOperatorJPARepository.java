@@ -16,4 +16,6 @@ public interface RegisteredOperatorJPARepository extends JpaRepository<Registere
 
 	Optional<RegisteredOperatorEntity> findByIncomingToken(@NotEmpty String token);
 
+	Optional<RegisteredOperatorEntity> findByCountryCodeAndPartyId(String countryCode, String partyId);
+
 }

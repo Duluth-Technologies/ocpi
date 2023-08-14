@@ -5,16 +5,13 @@ import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import com.duluthtechnologies.ocpi.api.client.OcpiApiClient;
+import com.duluthtechnologies.ocpi.api.client.OcpiCPOApiV211Client;
+import com.duluthtechnologies.ocpi.api.client.OcpiEMSPApiV211Client;
 import com.duluthtechnologies.ocpi.core.configuration.CPOInfo;
 import com.duluthtechnologies.ocpi.core.model.Connector;
 import com.duluthtechnologies.ocpi.core.model.Connector.Status;
@@ -27,7 +24,6 @@ import com.duluthtechnologies.ocpi.core.service.ConnectorService;
 import com.duluthtechnologies.ocpi.core.service.LocationService.ConnectorForm;
 import com.duluthtechnologies.ocpi.core.service.RegisteredOperatorService;
 import com.duluthtechnologies.ocpi.core.store.ConnectorStore;
-import com.duluthtechnologies.ocpi.model.Response;
 import com.duluthtechnologies.ocpi.service.helper.KeyGenerator;
 import com.duluthtechnologies.ocpi.service.mapper.ConnectorMapper;
 import com.duluthtechnologies.ocpi.service.mapper.EvseMapper;
@@ -52,13 +48,15 @@ public class ConnectorServiceImpl implements ConnectorService {
 
 	private final RestTemplate restTemplate;
 
-	private final OcpiApiClient ocpiApiClient;
+	private final OcpiCPOApiV211Client ocpiCPOApiV211Client;
+
+	private final OcpiEMSPApiV211Client ocpiEMSPApiV211Client;
 
 	private final TaskExecutor taskExecutor;
 
 	public ConnectorServiceImpl(ConnectorStore connectorStore, ConnectorMapper connectorMapper, EvseMapper evseMapper,
 			TaskExecutor taskExecutor, RegisteredOperatorService registeredOperatorService, Optional<CPOInfo> cpoInfo,
-			OcpiApiClient ocpiApiClient) {
+			OcpiCPOApiV211Client ocpiCPOApiV211Client, OcpiEMSPApiV211Client ocpiEMSPApiV211Client) {
 		super();
 		this.registeredOperatorService = registeredOperatorService;
 		this.connectorStore = connectorStore;
@@ -67,7 +65,8 @@ public class ConnectorServiceImpl implements ConnectorService {
 		this.cpoInfo = cpoInfo;
 		this.restTemplate = new RestTemplate();
 		this.restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
-		this.ocpiApiClient = ocpiApiClient;
+		this.ocpiCPOApiV211Client = ocpiCPOApiV211Client;
+		this.ocpiEMSPApiV211Client = ocpiEMSPApiV211Client;
 		this.taskExecutor = taskExecutor;
 	}
 
@@ -114,7 +113,7 @@ public class ConnectorServiceImpl implements ConnectorService {
 			if (connector.getEvse().getLocation() instanceof RegisteredCPOLocation registeredCPOLocation) {
 				RegisteredCPO registeredCPO = registeredCPOLocation.getRegisteredCPO();
 				if (registeredCPO instanceof RegisteredCPOV211 registeredCPOV211) {
-					com.duluthtechnologies.ocpi.model.v211.EVSE evseV211 = ocpiApiClient.getEvse211(
+					com.duluthtechnologies.ocpi.model.v211.EVSE evseV211 = ocpiCPOApiV211Client.getEvse211(
 							registeredCPOV211.getOutgoingToken(), registeredCPOV211.getLocationsUrl(),
 							registeredCPOV211.getCountryCode(), registeredCPOV211.getPartyId(),
 							registeredCPOLocation.getOcpiId(), connector.getEvse().getOcpiId());
@@ -169,7 +168,7 @@ public class ConnectorServiceImpl implements ConnectorService {
 					if (registeredEMSP instanceof RegisteredEMSPV211 registeredEMSPV211) {
 						if (registeredEMSPV211.getOutgoingToken() != null
 								&& registeredEMSPV211.getLocationsUrl() != null) {
-							ocpiApiClient.patchEvseV211(registeredEMSPV211.getOutgoingToken(),
+							ocpiEMSPApiV211Client.patchEvseV211(registeredEMSPV211.getOutgoingToken(),
 									registeredEMSPV211.getLocationsUrl(), cpoInfo.get().getCountryCode(),
 									cpoInfo.get().getPartyId(), connector.getEvse().getLocation().getOcpiId(),
 									connector.getEvse().getOcpiId(), evsePatchStatus);

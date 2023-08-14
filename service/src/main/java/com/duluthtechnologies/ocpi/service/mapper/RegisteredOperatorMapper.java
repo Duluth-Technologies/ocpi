@@ -31,12 +31,12 @@ public abstract class RegisteredOperatorMapper {
 	@Mapping(source = "incomingToken", target = "incomingToken")
 	@Mapping(source = "outgoingToken", target = "outgoingToken")
 	public abstract RegisteredCPOV211Impl toRegisteredCPOV211(RegisteredCPO registeredCPO, String credentialsUrl,
-			String locationsUrl, String incomingToken, String outgoingToken);
+			String locationsUrl, String sessionsUrl, String incomingToken, String outgoingToken);
 
 	@Mapping(source = "incomingToken", target = "incomingToken")
 	@Mapping(source = "outgoingToken", target = "outgoingToken")
 	public abstract RegisteredEMSPV211Impl toRegisteredEMSPV211(RegisteredEMSP registeredEMSP, String credentialsUrl,
-			String locationsUrl, String incomingToken, String outgoingToken);
+			String locationsUrl, String sessionsUrl, String incomingToken, String outgoingToken);
 
 	protected static class RegisteredEMSPImpl implements RegisteredEMSP {
 
@@ -150,6 +150,8 @@ public abstract class RegisteredOperatorMapper {
 
 		private String locationsUrl;
 
+		private String sessionsUrl;
+
 		@Override
 		public String getCredentialsUrl() {
 			return credentialsUrl;
@@ -166,6 +168,15 @@ public abstract class RegisteredOperatorMapper {
 
 		public void setLocationsUrl(String locationsUrl) {
 			this.locationsUrl = locationsUrl;
+		}
+
+		@Override
+		public String getSessionsUrl() {
+			return sessionsUrl;
+		}
+
+		public void setSessionsUrl(String sessionsUrl) {
+			this.sessionsUrl = sessionsUrl;
 		}
 
 	}
@@ -281,6 +292,8 @@ public abstract class RegisteredOperatorMapper {
 
 		private String locationsUrl;
 
+		private String sessionsUrl;
+
 		@Override
 		public String getCredentialsUrl() {
 			return credentialsUrl;
@@ -297,6 +310,15 @@ public abstract class RegisteredOperatorMapper {
 
 		public void setLocationsUrl(String locationsUrl) {
 			this.locationsUrl = locationsUrl;
+		}
+
+		@Override
+		public String getSessionsUrl() {
+			return sessionsUrl;
+		}
+
+		public void setSessionsUrl(String sessionsUrl) {
+			this.sessionsUrl = sessionsUrl;
 		}
 
 	}

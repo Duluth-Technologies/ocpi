@@ -41,7 +41,8 @@ public class EMSPVersionsDetailsController {
 				new VersionDetails(VersionNumber.V2_1_1,
 						List.of(new Endpoint(ModuleID.CredentialsRegistration,
 								externalOcpiApiUrl + "/ocpi/emsp/2.1.1/credentials"),
-								new Endpoint(ModuleID.Locations, externalOcpiApiUrl + "/ocpi/emsp/2.1.1/locations"))),
+								new Endpoint(ModuleID.Locations, externalOcpiApiUrl + "/ocpi/emsp/2.1.1/locations"),
+								new Endpoint(ModuleID.Sessions, externalOcpiApiUrl + "/ocpi/emsp/2.1.1/sessions"))),
 				1000, null, Instant.now()));
 	}
 

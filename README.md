@@ -6,6 +6,8 @@ Java implementation of the OCPI protocol.
 
 The following modules have been implemented:
 - Credentials (beta)
+- Locations (alpha)
+- Sessions (alpha)
 
 ## License
 

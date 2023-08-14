@@ -19,6 +19,7 @@ import com.duluthtechnologies.ocpi.persistence.entity.CPOLocationEntity;
 import com.duluthtechnologies.ocpi.persistence.entity.LocationEntity;
 import com.duluthtechnologies.ocpi.persistence.entity.RegisteredCPOEntity;
 import com.duluthtechnologies.ocpi.persistence.entity.RegisteredOperatorEntity;
+import com.duluthtechnologies.ocpi.persistence.jpa.CPOLocationJPARepository;
 import com.duluthtechnologies.ocpi.persistence.jpa.LocationJPARepository;
 import com.duluthtechnologies.ocpi.persistence.jpa.RegisteredOperatorJPARepository;
 import com.duluthtechnologies.ocpi.persistence.mapper.LocationEntityMapper;
@@ -32,14 +33,18 @@ public class LocationStoreImpl implements LocationStore {
 
 	private final LocationJPARepository locationJPARepository;
 
+	private final CPOLocationJPARepository cpoLocationJPARepository;
+
 	private final RegisteredOperatorJPARepository registeredOperatorJPARepository;
 
 	private final LocationEntityMapper locationEntityMapper;
 
 	public LocationStoreImpl(LocationJPARepository locationJPARepository, LocationEntityMapper locationEntityMapper,
-			RegisteredOperatorJPARepository registeredOperatorJPARepository) {
+			RegisteredOperatorJPARepository registeredOperatorJPARepository,
+			CPOLocationJPARepository cpoLocationJPARepository) {
 		super();
 		this.locationJPARepository = locationJPARepository;
+		this.cpoLocationJPARepository = cpoLocationJPARepository;
 		this.registeredOperatorJPARepository = registeredOperatorJPARepository;
 		this.locationEntityMapper = locationEntityMapper;
 	}
@@ -126,8 +131,7 @@ public class LocationStoreImpl implements LocationStore {
 	}
 
 	@Override
-	public Page<Location> findNotRegisteredLocations(Instant dateFrom, Instant dateTo, Integer offset,
-			Integer limit) {
+	public Page<Location> findNotRegisteredLocations(Instant dateFrom, Instant dateTo, Integer offset, Integer limit) {
 		// We filter on locations which are not RegisteredCPOLocation to have the own
 		// Locations
 		Stream<LocationEntity> locationEntities = locationJPARepository.findAll().stream()
@@ -147,6 +151,13 @@ public class LocationStoreImpl implements LocationStore {
 		List<LocationEntity> filteredLocationEntities = locationEntities.toList();
 		return new Page(filteredLocationEntities.stream().sorted(Comparator.comparing(LocationEntity::getId))
 				.skip(offset).limit(limit).map(Location.class::cast).toList(), filteredLocationEntities.size());
+	}
+
+	@Override
+	public Optional<RegisteredCPOLocation> findByRegisteredCpoKeyAndOcpiId(String registeredCpoKey,
+			String locationOcpiId) {
+		return cpoLocationJPARepository.findByRegisteredCPOKeyAndOcpiId(registeredCpoKey, locationOcpiId)
+				.map(RegisteredCPOLocation.class::cast);
 	}
 
 }

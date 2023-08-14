@@ -5,3 +5,8 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+      
+logging:
+  level:
+    root: DEBUG
+    '[com.duluthtechnologies.ocpi]': DEBUG

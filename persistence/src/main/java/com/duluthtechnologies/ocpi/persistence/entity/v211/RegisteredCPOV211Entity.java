@@ -17,6 +17,9 @@ public class RegisteredCPOV211Entity extends RegisteredCPOEntity implements Regi
 	@Column(name = "locations_url")
 	private String locationsUrl;
 
+	@Column(name = "sessions_url")
+	private String sessionsUrl;
+
 	@Override
 	public String getCredentialsUrl() {
 		return credentialsUrl;
@@ -33,6 +36,15 @@ public class RegisteredCPOV211Entity extends RegisteredCPOEntity implements Regi
 
 	public void setLocationsUrl(String locationsUrl) {
 		this.locationsUrl = locationsUrl;
+	}
+
+	@Override
+	public String getSessionsUrl() {
+		return sessionsUrl;
+	}
+
+	public void setSessionsUrl(String sessionsUrl) {
+		this.sessionsUrl = sessionsUrl;
 	}
 
 }

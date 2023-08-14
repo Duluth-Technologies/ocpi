@@ -1,8 +1,9 @@
 package com.duluthtechnologies.ocpi.test.integration;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.firefox.FirefoxOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,14 +44,22 @@ public class SpringBootTestConfiguration {
 		return ocpiContainerProvider.createEMSPContainer(network, "FR", partyId);
 	}
 
+//	@Bean
+//	WebDriver chromeDriver() {
+//		LOG.info("Creating ChromeDriver...");
+//		ChromeOptions options = new ChromeOptions();
+//		// options.addArguments("--headless");
+//		// Needed since Chrome 111 otherwise connection cannot be established
+//		options.addArguments("--remote-allow-origins=*");
+//		return new ChromeDriver(options);
+//	}
+
 	@Bean
-	ChromeDriver chromeDriver() {
-		LOG.info("Creating ChromeDriver...");
-		ChromeOptions options = new ChromeOptions();
-		options.addArguments("--headless");
-		// Needed since Chrome 111 otherwise connection cannot be established
-		options.addArguments("--remote-allow-origins=*");
-		return new ChromeDriver(options);
+	WebDriver firefoxDriver() {
+		LOG.info("Creating FirefoxDriver...");
+		FirefoxOptions options = new FirefoxOptions();
+		options.addArguments("-headless");
+		return new FirefoxDriver(options);
 	}
 
 }

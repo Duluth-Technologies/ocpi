@@ -19,6 +19,7 @@ open module com.duluthtechnologies.ocpi.persistence {
 	requires spring.data.envers;
 	requires org.hibernate.orm.envers;
 	requires org.hibernate.orm.core;
+	requires org.apache.commons.lang3;
 
 	exports com.duluthtechnologies.ocpi.persistence.configuration;
 }
