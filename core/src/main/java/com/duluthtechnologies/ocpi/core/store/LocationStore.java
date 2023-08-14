@@ -27,7 +27,8 @@ public interface LocationStore {
 
 	List<Location> findByOcpiId(String ocpiId);
 
-	Page<Location> findNotRegisteredLocations(Instant dateFrom, Instant dateTo,
-			Integer offset, Integer limit);
+	Page<Location> findNotRegisteredLocations(Instant dateFrom, Instant dateTo, Integer offset, Integer limit);
+
+	Optional<RegisteredCPOLocation> findByRegisteredCpoKeyAndOcpiId(String registeredCpoKey, String locationOcpiId);
 
 }

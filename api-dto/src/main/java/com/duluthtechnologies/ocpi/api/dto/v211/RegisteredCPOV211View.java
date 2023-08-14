@@ -8,6 +8,8 @@ public class RegisteredCPOV211View extends RegisteredCPOView {
 
 	private String locationsUrl;
 
+	private String sessionsUrl;
+
 	public String getCredentialsUrl() {
 		return credentialsUrl;
 	}
@@ -22,6 +24,14 @@ public class RegisteredCPOV211View extends RegisteredCPOView {
 
 	public void setLocationsUrl(String locationsUrl) {
 		this.locationsUrl = locationsUrl;
+	}
+
+	public String getSessionsUrl() {
+		return sessionsUrl;
+	}
+
+	public void setSessionsUrl(String sessionsUrl) {
+		this.sessionsUrl = sessionsUrl;
 	}
 
 }

@@ -13,4 +13,6 @@
 		file="db/changelog/00001-initial-schema-initialization.xml" />
 	<include
 		file="db/changelog/00002-add-location-evse-connector.xml" />
+	<include file="db/changelog/00003-add-charging-sessions.xml" />
+
 </databaseChangeLog>

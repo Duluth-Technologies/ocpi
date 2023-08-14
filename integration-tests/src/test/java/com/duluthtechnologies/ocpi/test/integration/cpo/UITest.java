@@ -21,7 +21,7 @@ class UITest extends AbstractCPOTest {
 	@Autowired
 	private WebDriver driver;
 
-	@ResourceLock("chrome-driver") // No parallel actions on browser driver
+	@ResourceLock("web-driver") // No parallel actions on browser driver
 	@Test
 	void testSwaggerUI() throws InterruptedException {
 		String url = cpoTestInstance.getExternalUrl() + "/" + "swagger-ui.html";

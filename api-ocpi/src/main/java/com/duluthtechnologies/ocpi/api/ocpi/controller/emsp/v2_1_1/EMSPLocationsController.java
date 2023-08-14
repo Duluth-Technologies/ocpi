@@ -135,11 +135,11 @@ public class EMSPLocationsController {
 		LocationForm locationForm = locationMapper.toLocationForm(location);
 		if (optionalRegisteredCPOLocation.isEmpty()) {
 			locationService.createRegisteredCPOLocation(locationForm, SecurityContext.getCPOKey());
-			Response response = new Response(null, 2000, null, Instant.now());
+			Response response = new Response(null, 1000, null, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(201)).body(response);
 		} else {
 			locationService.updateRegisteredCPOLocation(optionalRegisteredCPOLocation.get().getKey(), locationForm);
-			Response response = new Response(null, 2000, null, Instant.now());
+			Response response = new Response(null, 1000, null, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(200)).body(response);
 		}
 	}
@@ -148,7 +148,7 @@ public class EMSPLocationsController {
 	@Authenticated(type = AuthenticatedType.CPO)
 	public ResponseEntity<Response> patchLocation(@PathVariable String countryCode, @PathVariable String partyId,
 			@PathVariable String locationId, @RequestBody Location location) {
-		LOG.debug("Setting Location [{}] for CPO with country code [{}] and party id [{}]...", location, countryCode,
+		LOG.debug("Patching Location [{}] for CPO with country code [{}] and party id [{}]...", location, countryCode,
 				partyId);
 		RegisteredCPO registeredCPO = registeredOperatorService.findCPOByKey(SecurityContext.getCPOKey()).get();
 		if (!Objects.equals(registeredCPO.getCountryCode(), countryCode)) {
@@ -170,14 +170,14 @@ public class EMSPLocationsController {
 
 		LocationForm locationForm = locationMapper.toLocationForm(location);
 		if (optionalRegisteredCPOLocation.isEmpty()) {
-			String message = "Cannot find Location with countryCode [%s] and partyId [%s] and locationId [%s]."
+			String message = "Cannot find Location with countryCode [%s] and partyId [%s] and OCPI id [%s]."
 					.formatted(countryCode, partyId, locationId);
 			LOG.error(message);
 			Response response = new Response(null, 3001, message, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(400)).body(response);
 		} else {
 			locationService.patchRegisteredCPOLocation(optionalRegisteredCPOLocation.get().getKey(), locationForm);
-			Response response = new Response(null, 2000, null, Instant.now());
+			Response response = new Response(null, 1000, null, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(200)).body(response);
 		}
 	}
@@ -214,7 +214,7 @@ public class EMSPLocationsController {
 		// If the Location has not been found then return an error
 		if (optionalRegisteredCPOLocation.isEmpty()) {
 			String message = "Cannot get EVSE with country code [%s] and party id [%s] and Location with id [%s] as no such Location exists."
-					.formatted(countryCode, partyId);
+					.formatted(countryCode, partyId, locationId);
 			LOG.error(message);
 			Response response = new Response(null, 3001, message, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(404)).body(response);
@@ -264,7 +264,7 @@ public class EMSPLocationsController {
 		// If the Location has not been found then return an error
 		if (optionalRegisteredCPOLocation.isEmpty()) {
 			String message = "Cannot set EVSE with country code [%s] and party id [%s] and Location with id [%s] as no such Location exists."
-					.formatted(countryCode, partyId);
+					.formatted(countryCode, partyId, locationId);
 			LOG.error(message);
 			Response response = new Response(null, 3001, message, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(404)).body(response);
@@ -276,11 +276,11 @@ public class EMSPLocationsController {
 		EvseForm evseForm = evseMapper.toEvseForm(evse);
 		if (optionalEvse.isEmpty()) {
 			evseService.create(optionalRegisteredCPOLocation.get().getKey(), evseForm);
-			Response response = new Response(null, 2000, null, Instant.now());
+			Response response = new Response(null, 1000, null, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(201)).body(response);
 		} else {
 			evseService.update(optionalEvse.get().getKey(), evseForm);
-			Response response = new Response(null, 2000, null, Instant.now());
+			Response response = new Response(null, 1000, null, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(200)).body(response);
 		}
 	}
@@ -320,7 +320,7 @@ public class EMSPLocationsController {
 		// If the Location has not been found then return an error
 		if (optionalRegisteredCPOLocation.isEmpty()) {
 			String message = "Cannot patch EVSE with country code [%s] and party id [%s] and Location with id [%s] as no such Location exists."
-					.formatted(countryCode, partyId);
+					.formatted(countryCode, partyId, locationId);
 			LOG.error(message);
 			Response response = new Response(null, 3001, message, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(404)).body(response);
@@ -343,7 +343,7 @@ public class EMSPLocationsController {
 					connectorService.patch(c.getKey(), connectorMapper.toConnectorForm(null, evse.status()));
 				});
 			}
-			Response response = new Response(null, 2000, null, Instant.now());
+			Response response = new Response(null, 1000, null, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(200)).body(response);
 		}
 	}
@@ -380,7 +380,7 @@ public class EMSPLocationsController {
 		// If the Location has not been found then return an error
 		if (optionalRegisteredCPOLocation.isEmpty()) {
 			String message = "Cannot set Connector with country code [%s] and party id [%s] and Location with id [%s] as no such Location exists."
-					.formatted(countryCode, partyId);
+					.formatted(countryCode, partyId, locationId);
 			LOG.error(message);
 			Response response = new Response(null, 3001, message, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(404)).body(response);
@@ -391,7 +391,7 @@ public class EMSPLocationsController {
 		// If the EVSE has not been found then return an error
 		if (optionalEvse.isEmpty()) {
 			String message = "Cannot set Connector with country code [%s] and party id [%s] and Location with id [%s] and EVSE with id [%s] as no such EVSE exists."
-					.formatted(countryCode, partyId);
+					.formatted(countryCode, partyId, locationId, evseId);
 			LOG.error(message);
 			Response response = new Response(null, 3001, message, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(404)).body(response);
@@ -442,7 +442,7 @@ public class EMSPLocationsController {
 		// If the Location has not been found then return an error
 		if (optionalRegisteredCPOLocation.isEmpty()) {
 			String message = "Cannot set Connector with country code [%s] and party id [%s] and Location with id [%s] as no such Location exists."
-					.formatted(countryCode, partyId);
+					.formatted(countryCode, partyId, locationId);
 			LOG.error(message);
 			Response response = new Response(null, 3001, message, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(404)).body(response);
@@ -453,7 +453,7 @@ public class EMSPLocationsController {
 		// If the EVSE has not been found then return an error
 		if (optionalEvse.isEmpty()) {
 			String message = "Cannot set Connector with country code [%s] and party id [%s] and Location with id [%s] and EVSE with id [%s] as no such EVSE exists."
-					.formatted(countryCode, partyId);
+					.formatted(countryCode, partyId, locationId, evseId);
 			LOG.error(message);
 			Response response = new Response(null, 3001, message, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(404)).body(response);
@@ -465,7 +465,7 @@ public class EMSPLocationsController {
 			ConnectorForm connectorForm = connectorMapper.toConnectorForm(connector,
 					(com.duluthtechnologies.ocpi.model.v211.Status) null);
 			connectorService.create(optionalEvse.get().getKey(), connectorForm);
-			Response response = new Response(null, 2000, null, Instant.now());
+			Response response = new Response(null, 1000, null, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(201)).body(response);
 		} else {
 			// OCPI v2.1.1 doesn't allow to pass the connector status, so we just return set
@@ -473,7 +473,7 @@ public class EMSPLocationsController {
 			ConnectorForm connectorForm = connectorMapper.toConnectorForm(connector,
 					optionalConnector.get().getStatus());
 			connectorService.update(optionalEvse.get().getKey(), connectorForm);
-			Response response = new Response(null, 2000, null, Instant.now());
+			Response response = new Response(null, 1000, null, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(200)).body(response);
 		}
 	}
@@ -511,7 +511,7 @@ public class EMSPLocationsController {
 		// If the Location has not been found then return an error
 		if (optionalRegisteredCPOLocation.isEmpty()) {
 			String message = "Cannot patch Connector with country code [%s] and party id [%s] and Location with id [%s] as no such Location exists."
-					.formatted(countryCode, partyId);
+					.formatted(countryCode, partyId, locationId);
 			LOG.error(message);
 			Response response = new Response(null, 3001, message, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(404)).body(response);
@@ -522,7 +522,7 @@ public class EMSPLocationsController {
 		// If the EVSE has not been found then return an error
 		if (optionalEvse.isEmpty()) {
 			String message = "Cannot patch Connector with country code [%s] and party id [%s] and Location with id [%s] and EVSE with id [%s] as no such EVSE exists."
-					.formatted(countryCode, partyId);
+					.formatted(countryCode, partyId, locationId, evseId);
 			LOG.error(message);
 			Response response = new Response(null, 3001, message, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(404)).body(response);
@@ -542,7 +542,7 @@ public class EMSPLocationsController {
 			ConnectorForm connectorForm = connectorMapper.toConnectorForm(connector,
 					optionalConnector.get().getStatus());
 			connectorService.patch(optionalEvse.get().getKey(), connectorForm);
-			Response response = new Response(null, 2000, null, Instant.now());
+			Response response = new Response(null, 1000, null, Instant.now());
 			return ResponseEntity.status(HttpStatusCode.valueOf(200)).body(response);
 		}
 	}

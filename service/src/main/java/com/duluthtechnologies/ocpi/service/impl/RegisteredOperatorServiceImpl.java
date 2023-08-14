@@ -14,11 +14,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import com.duluthtechnologies.ocpi.api.client.OcpiApiClient;
-import com.duluthtechnologies.ocpi.api.client.OcpiApiClientException;
+import com.duluthtechnologies.ocpi.api.client.OcpiCPOApiV211Client;
 import com.duluthtechnologies.ocpi.core.configuration.CPOInfo;
 import com.duluthtechnologies.ocpi.core.configuration.EMSPInfo;
 import com.duluthtechnologies.ocpi.core.model.RegisteredCPO;
@@ -58,12 +56,13 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 	private final String externalOcpiApiUrl;
 
 	private final RestTemplate restTemplate;
-	
-	private final OcpiApiClient ocpiApiClient;
+
+	private final OcpiCPOApiV211Client ocpiCPOApiV211Client;
 
 	public RegisteredOperatorServiceImpl(RegisteredOperatorStore registeredOperatorStore,
 			RegisteredOperatorMapper registeredOperatorMapper, Optional<CPOInfo> cpoInfo,
-			@Qualifier("externalOcpiApiUrl") String externalOcpiApiUrl, Optional<EMSPInfo> emspInfo, OcpiApiClient ocpiApiClient) {
+			@Qualifier("externalOcpiApiUrl") String externalOcpiApiUrl, Optional<EMSPInfo> emspInfo,
+			OcpiCPOApiV211Client ocpiCPOApiV211Client) {
 		super();
 		this.registeredOperatorStore = registeredOperatorStore;
 		this.registeredOperatorMapper = registeredOperatorMapper;
@@ -72,7 +71,7 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 		this.externalOcpiApiUrl = externalOcpiApiUrl;
 		this.restTemplate = new RestTemplate();
 		this.restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
-		this.ocpiApiClient = ocpiApiClient;
+		this.ocpiCPOApiV211Client = ocpiCPOApiV211Client;
 	}
 
 	@Override
@@ -136,7 +135,8 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 	public void performHandshakeWithCPO(String key) {
 		try {
 			RegisteredCPO registeredCPO = (RegisteredCPO) registeredOperatorStore.findByKey(key).orElseThrow(() -> {
-				String message = "Cannot perform handshake with CPO with key [%s] as it cannot be found.".formatted(key);
+				String message = "Cannot perform handshake with CPO with key [%s] as it cannot be found."
+						.formatted(key);
 				LOG.error(message);
 				return new RuntimeException(message); // TODO
 			});
@@ -158,8 +158,8 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 			HttpHeaders headers = new HttpHeaders();
 			headers.set("Authorization", "Token " + token);
 			HttpEntity entity = new HttpEntity<>(headers);
-			Version[] versions = restTemplate
-					.exchange(versionUrl, HttpMethod.GET, entity, new ParameterizedTypeReference<Response<Version[]>>() {
+			Version[] versions = restTemplate.exchange(versionUrl, HttpMethod.GET, entity,
+					new ParameterizedTypeReference<Response<Version[]>>() {
 					}).getBody().data();
 			Version version = pickVersion(versions);
 
@@ -170,6 +170,7 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 			if (versionDetails.version() == VersionNumber.V2_1_1) {
 				String credentialsUrl = null;
 				String locationsUrl = null;
+				String sessionsUrl = null;
 				for (Endpoint endpoint : versionDetails.endpoints()) {
 					if (endpoint.identifier() == ModuleID.CredentialsRegistration) {
 						credentialsUrl = endpoint.url();
@@ -179,23 +180,29 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 						locationsUrl = endpoint.url();
 						LOG.debug("CPO version details returned Locations URL [{}].", locationsUrl);
 					}
+					if (endpoint.identifier() == ModuleID.Sessions) {
+						sessionsUrl = endpoint.url();
+						LOG.debug("CPO version details returned Sessions URL [{}].", sessionsUrl);
+					}
 				}
 				String incomingToken = UUID.randomUUID().toString();
-				RegisteredCPO registeredCPOWithIncomingToken = registeredOperatorMapper.updateIncomingToken(registeredCPO,
-						incomingToken);
+				RegisteredCPO registeredCPOWithIncomingToken = registeredOperatorMapper
+						.updateIncomingToken(registeredCPO, incomingToken);
 				updateRegisteredCPO(registeredCPOWithIncomingToken); // TODO Remove token in case there is an error
 				Image image = new Image(null, null, null, null, null, null);
 				BusinessDetails businessDetails = new BusinessDetails(emspInfo.get().getName(),
 						emspInfo.get().getWebsiteUrl(), image);
 				Credentials credentials = new Credentials(incomingToken, externalOcpiApiUrl + "/ocpi/emsp/versions",
-						businessDetails, emspInfo.get().getPartyId(), emspInfo.get().getCountryCode());				
-				Credentials emspCredentials = ocpiApiClient.postCredentialsV211(token, credentialsUrl, credentials);
+						businessDetails, emspInfo.get().getPartyId(), emspInfo.get().getCountryCode());
+				Credentials emspCredentials = ocpiCPOApiV211Client.postCredentialsV211(token, credentialsUrl,
+						credentials);
 				RegisteredCPOV211 registeredCPOV211 = registeredOperatorMapper.toRegisteredCPOV211(registeredCPO,
-						credentialsUrl, locationsUrl, incomingToken, emspCredentials.token());
+						credentialsUrl, locationsUrl, sessionsUrl, incomingToken, emspCredentials.token());
 				updateRegisteredCPO(registeredCPOV211);
 			}
 		} catch (Exception e) {
-			String message = "Exception caught while performing handshake with registered CPO with key [%s]".formatted(key);
+			String message = "Exception caught while performing handshake with registered CPO with key [%s]"
+					.formatted(key);
 			LOG.error(message);
 			throw new RuntimeException(message, e);
 		}
@@ -239,6 +246,7 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 		if (versionDetails.version() == VersionNumber.V2_1_1) {
 			String credentialsUrl = null;
 			String locationsUrl = null;
+			String sessionsUrl = null;
 			for (Endpoint endpoint : versionDetails.endpoints()) {
 				if (endpoint.identifier() == ModuleID.CredentialsRegistration) {
 					credentialsUrl = endpoint.url();
@@ -247,6 +255,10 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 				if (endpoint.identifier() == ModuleID.Locations) {
 					locationsUrl = endpoint.url();
 					LOG.debug("EMSP version details returned Locations URL [{}].", locationsUrl);
+				}
+				if (endpoint.identifier() == ModuleID.Sessions) {
+					sessionsUrl = endpoint.url();
+					LOG.debug("EMSP version details returned Sessions URL [{}].", sessionsUrl);
 				}
 			}
 			String incomingToken = UUID.randomUUID().toString();
@@ -259,12 +271,13 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 			Credentials credentials = new Credentials(incomingToken, externalOcpiApiUrl + "/ocpi/cpo/versions",
 					businessDetails, cpoInfo.get().getPartyId(), cpoInfo.get().getCountryCode());
 			LOG.debug("Calling EMSP Credentials URL [{}]...", credentialsUrl);
+			// TODO Move into client
 			entity = new HttpEntity<>(credentials, headers);
 			Credentials emspCredentials = restTemplate.exchange(credentialsUrl, HttpMethod.POST, entity,
 					new ParameterizedTypeReference<Response<Credentials>>() {
 					}).getBody().data();
 			RegisteredEMSPV211 registeredEMSPV211 = registeredOperatorMapper.toRegisteredEMSPV211(registeredEMSP,
-					credentialsUrl, locationsUrl, incomingToken, emspCredentials.token());
+					credentialsUrl, locationsUrl, sessionsUrl, incomingToken, emspCredentials.token());
 			updateRegisteredEMSP(registeredEMSPV211);
 		}
 	}
@@ -295,6 +308,7 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 				}).getBody().data();
 		String credentialsUrl = null;
 		String locationsUrl = null;
+		String sessionsUrl = null;
 		for (Endpoint endpoint : versionDetails.endpoints()) {
 			if (endpoint.identifier() == ModuleID.CredentialsRegistration) {
 				credentialsUrl = endpoint.url();
@@ -304,10 +318,14 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 				locationsUrl = endpoint.url();
 				LOG.debug("CPO version details returned Locations URL [{}].", locationsUrl);
 			}
+			if (endpoint.identifier() == ModuleID.Sessions) {
+				sessionsUrl = endpoint.url();
+				LOG.debug("EMSP version details returned Sessions URL [{}].", sessionsUrl);
+			}
 		}
 		String incomingToken = UUID.randomUUID().toString();
 		RegisteredCPOV211 registeredCPOV211 = registeredOperatorMapper.toRegisteredCPOV211(registeredCPO,
-				credentialsUrl, locationsUrl, incomingToken, credentials.token());
+				credentialsUrl, locationsUrl, sessionsUrl, incomingToken, credentials.token());
 		return updateRegisteredCPO(registeredCPOV211);
 	}
 
@@ -334,6 +352,7 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 				}).getBody().data();
 		String credentialsUrl = null;
 		String locationsUrl = null;
+		String sessionsUrl = null;
 		for (Endpoint endpoint : versionDetails.endpoints()) {
 			if (endpoint.identifier() == ModuleID.CredentialsRegistration) {
 				credentialsUrl = endpoint.url();
@@ -343,10 +362,14 @@ public class RegisteredOperatorServiceImpl implements RegisteredOperatorService 
 				locationsUrl = endpoint.url();
 				LOG.debug("EMSP version details returned Locations URL [{}].", locationsUrl);
 			}
+			if (endpoint.identifier() == ModuleID.Sessions) {
+				sessionsUrl = endpoint.url();
+				LOG.debug("EMSP version details returned Sessions URL [{}].", sessionsUrl);
+			}
 		}
 		String incomingToken = UUID.randomUUID().toString();
 		RegisteredEMSPV211 registeredEMSPV211 = registeredOperatorMapper.toRegisteredEMSPV211(registeredEMSP,
-				credentialsUrl, locationsUrl, incomingToken, credentials.token());
+				credentialsUrl, locationsUrl, sessionsUrl, incomingToken, credentials.token());
 		return updateRegisteredEMSP(registeredEMSPV211);
 	}
 

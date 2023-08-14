@@ -26,11 +26,11 @@ public abstract class LocationMapper {
 	protected EvseMapper evseMapper;
 
 	@Mapping(target = "evses", ignore = true)
-	public abstract LocationImpl toLocation(LocationForm locationCreationForm);
+	public abstract LocationImpl toLocation(LocationForm locationForm);
 
 	@Mapping(target = "evses", ignore = true)
 	@Mapping(target = "registeredCPO", ignore = true)
-	public abstract RegisteredCPOLocationImpl toRegisteredCPOLocation(LocationForm locationCreationForm);
+	public abstract RegisteredCPOLocationImpl toRegisteredCPOLocation(LocationForm locationForm);
 
 	@Mapping(target = "id", source = "location.ocpiId")
 	@Mapping(target = "postalCode", source = "location.zipCode")
