@@ -1,7 +1,6 @@
 package com.duluthtechnologies.ocpi.api.ocpi.controller.emsp.v2_1_1;
 
 import java.time.Instant;
-import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +9,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -22,8 +22,6 @@ import com.duluthtechnologies.ocpi.core.model.RegisteredCPO;
 import com.duluthtechnologies.ocpi.core.model.v211.RegisteredCPOV211;
 import com.duluthtechnologies.ocpi.core.service.RegisteredOperatorService;
 import com.duluthtechnologies.ocpi.model.Response;
-import com.duluthtechnologies.ocpi.model.Version;
-import com.duluthtechnologies.ocpi.model.VersionNumber;
 import com.duluthtechnologies.ocpi.model.v211.BusinessDetails;
 import com.duluthtechnologies.ocpi.model.v211.Credentials;
 import com.duluthtechnologies.ocpi.model.v211.Image;
@@ -76,8 +74,9 @@ public class EMSPCredentialsController {
 	@Authenticated(type = AuthenticatedType.CPO)
 	public ResponseEntity<Response<Credentials>> createCredentials(@RequestBody @Valid Credentials credentials) {
 		RegisteredCPO registeredCPO = registeredOperatorService.findCPOByKey(SecurityContext.getCPOKey()).get();
-		if (registeredCPO instanceof RegisteredCPOV211) {
-			String message = "Cannot create Credentials for EMSP with name[%s] as Credentials have already been created."
+		if (registeredCPO instanceof RegisteredCPOV211 registeredCPOV211
+				&& registeredCPOV211.getOutgoingToken() != null) {
+			String message = "Cannot create Credentials for EMSP with name [%s] as Credentials have already been created."
 					.formatted(registeredCPO.getName());
 			LOG.error(message);
 			Response response = new Response(null, 3001, message, Instant.now());
@@ -88,12 +87,17 @@ public class EMSPCredentialsController {
 				businessDetails, emspInfo.getPartyId(), emspInfo.getCountryCode()), 1000, null, Instant.now()));
 	}
 
-	private String externalVersionsUrl() {
-		return externalOcpiApiUrl + "/ocpi/cpo/versions";
+	@PutMapping
+	@Authenticated(type = AuthenticatedType.CPO)
+	public ResponseEntity<Response<Credentials>> updateCredentials(@RequestBody @Valid Credentials credentials) {
+		RegisteredCPO registeredCPO = registeredOperatorService.finalizeHandshakeWithCPO(SecurityContext.getCPOKey(),
+				credentials);
+		return ResponseEntity.ok(new Response(new Credentials(registeredCPO.getIncomingToken(), externalVersionsUrl(),
+				businessDetails, emspInfo.getPartyId(), emspInfo.getCountryCode()), 1000, null, Instant.now()));
 	}
 
-	private Version pickVersion(Version[] versions) {
-		return Stream.of(versions).filter(v -> v.version() == VersionNumber.V2_1_1).findFirst().orElseThrow();
+	private String externalVersionsUrl() {
+		return externalOcpiApiUrl + "/ocpi/cpo/versions";
 	}
 
 }

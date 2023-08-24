@@ -60,4 +60,38 @@ public abstract class OcpiApiV211ClientImpl implements OcpiApiV211Client {
 		}
 	}
 
+	@Override
+	public Credentials putCredentialsV211(String token, String credentialsUrl, Credentials credentials)
+			throws OcpiApiClientException {
+		LOG.debug("Putting Credentials on URL [{}]...", credentialsUrl);
+		try {
+			HttpHeaders headers = new HttpHeaders();
+			headers.set("Authorization", "Token " + token);
+			HttpEntity entity = new HttpEntity<>(credentials, headers);
+			Response<Credentials> response = restTemplate.exchange(credentialsUrl, HttpMethod.PUT, entity,
+					new ParameterizedTypeReference<Response<Credentials>>() {
+					}).getBody();
+
+			if (response == null) {
+				String message = "Null response returned when putting Credentials on URL [%s]."
+						.formatted(credentialsUrl);
+				LOG.error(message);
+				throw new OcpiApiClientException(message);
+			}
+			if (response.statusCode() >= 2000) {
+				String message = "Error occured when putting Credentials on URL [%s]. Status code: [%s]. Error message: [%s]"
+						.formatted(credentialsUrl, Integer.toString(response.statusCode()), response.statusMessage());
+				LOG.error(message);
+				throw new OcpiApiClientException(message);
+			}
+			return response.data();
+		} catch (OcpiApiClientException e) {
+			throw e;
+		} catch (Exception e) {
+			String message = "Exception caught while putting Credentials on URL [%s].".formatted(credentialsUrl);
+			LOG.error(message);
+			throw new OcpiApiClientException(message);
+		}
+	}
+
 }

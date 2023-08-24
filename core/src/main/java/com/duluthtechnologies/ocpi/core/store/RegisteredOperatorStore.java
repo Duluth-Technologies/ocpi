@@ -15,8 +15,6 @@ public interface RegisteredOperatorStore {
 
 	RegisteredOperator update(RegisteredOperator registeredOperator);
 
-	RegisteredOperator updateNow(RegisteredOperator registeredOperator);
-
 	Optional<RegisteredOperator> findByIncomingToken(String token);
 
 	Optional<RegisteredOperator> findByKey(@NotEmpty String key);

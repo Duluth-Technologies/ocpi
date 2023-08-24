@@ -5,8 +5,15 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+#    show-sql: true
+#    properties:
+#      hibernate:
+#        format_sql: true
+
       
 logging:
   level:
-    root: DEBUG
+    root: INFO
     '[com.duluthtechnologies.ocpi]': DEBUG
+#    '[org.hibernate.SQL]': DEBUG
+#    '[org.hibernate.orm.jdbc.bind]': TRACE'
