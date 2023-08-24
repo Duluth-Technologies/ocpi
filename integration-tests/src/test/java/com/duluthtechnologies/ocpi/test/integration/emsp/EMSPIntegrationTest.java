@@ -149,6 +149,136 @@ class EMSPIntegrationTest extends AbstractEMSPTest {
 	}
 
 	@Test
+	void testPerformHandshakeTwice() throws InterruptedException {
+		String partyId = RandomStringUtils.random(3, true, false).toUpperCase();
+		LOG.info("Creating test CPO container with party id [{}]...", partyId);
+		cpoTestInstance = ocpiContainerProvider.createCPOContainer(network, "FR", partyId, true);
+
+		LOG.info("Registering CPO into EMSP...");
+		String cpoKey = "cpo_" + cpoTestInstance.getCountryCode() + cpoTestInstance.getPartyId();
+		CPORegistrationForm cpoRegistrationForm = new CPORegistrationForm();
+		cpoRegistrationForm.setCountryCode(cpoTestInstance.getCountryCode());
+		cpoRegistrationForm.setPartyId(cpoTestInstance.getPartyId());
+		cpoRegistrationForm.setKey(cpoKey);
+		cpoRegistrationForm.setName(cpoTestInstance.getPartyId());
+		cpoRegistrationForm.setVersionUrl(cpoTestInstance.getInternalUrl() + "/ocpi/cpo/versions");
+		cpoRegistrationForm.setOutgoingToken("token");
+		restTemplate.postForEntity(emspTestInstance.getExternalUrl() + "/api/admin/cpo", cpoRegistrationForm,
+				RegisteredCPOView.class).getBody();
+
+		LOG.info("Registering EMSP into CPO...");
+		EMSPRegistrationForm emspRegistrationForm = new EMSPRegistrationForm();
+		emspRegistrationForm.setCountryCode("FR");
+		emspRegistrationForm.setPartyId(emspTestInstance.getPartyId());
+		String emspKey = "emsp_FR" + emspTestInstance.getPartyId();
+		emspRegistrationForm.setKey(emspKey);
+		emspRegistrationForm.setName("name");
+		emspRegistrationForm.setVersionUrl(emspTestInstance.getInternalUrl() + "/ocpi/emsp/version");
+		emspRegistrationForm.setIncomingToken("token");
+		restTemplate.postForEntity(cpoTestInstance.getExternalUrl() + "/api/admin/emsp", emspRegistrationForm,
+				RegisteredEMSPView.class).getBody();
+
+		LOG.info("Triggering handshake from EMSP...");
+		RegisteredCPOV211View registeredCPOV211View = restTemplate
+				.postForEntity(emspTestInstance.getExternalUrl() + "/api/admin/cpo/" + cpoKey + "/handshake", null,
+						RegisteredCPOV211View.class)
+				.getBody();
+
+		// Store the token to make sure they are modified after second handshake
+		String incomingToken = registeredCPOV211View.getIncomingToken();
+		String outgoingToken = registeredCPOV211View.getOutgoingToken();
+
+		LOG.info("Creating Location on CPO...");
+		// First connector for first Evse
+		ConnectorCreationForm connectorCreationForm1 = new ConnectorCreationForm();
+		connectorCreationForm1.setConnectorId("1");
+		connectorCreationForm1.setFormat(Format.CABLE);
+		connectorCreationForm1.setType(Type.IEC_62196_T2_COMBO);
+		connectorCreationForm1.setMaximumAmperage(100);
+		connectorCreationForm1.setPowerType(PowerType.DC);
+		connectorCreationForm1.setMaximumVoltage(1000);
+		connectorCreationForm1.setStatus(Connector.Status.AVAILABLE);
+
+		// Second connector for first Evse
+		ConnectorCreationForm connectorCreationForm2 = new ConnectorCreationForm();
+		connectorCreationForm2.setConnectorId("2");
+		connectorCreationForm2.setFormat(Format.CABLE);
+		connectorCreationForm2.setType(Type.IEC_62196_T2_COMBO);
+		connectorCreationForm2.setMaximumAmperage(100);
+		connectorCreationForm2.setPowerType(PowerType.DC);
+		connectorCreationForm2.setMaximumVoltage(1000);
+		connectorCreationForm2.setStatus(Connector.Status.AVAILABLE);
+
+		// First Evse
+		EvseCreationForm evseCreationForm1 = new EvseCreationForm();
+		String evseId1 = UUID.randomUUID().toString();
+		String evseOcpiId1 = UUID.randomUUID().toString();
+		evseCreationForm1.setEvseId(evseId1);
+		evseCreationForm1.setOcpiId(evseOcpiId1);
+		evseCreationForm1.setConnectors(List.of(connectorCreationForm1, connectorCreationForm2));
+
+		// Third connector for second Evse
+		ConnectorCreationForm connectorCreationForm3 = new ConnectorCreationForm();
+		connectorCreationForm3.setConnectorId("1");
+		connectorCreationForm3.setFormat(Format.CABLE);
+		connectorCreationForm3.setType(Type.IEC_62196_T2_COMBO);
+		connectorCreationForm3.setMaximumAmperage(100);
+		connectorCreationForm3.setPowerType(PowerType.DC);
+		connectorCreationForm3.setMaximumVoltage(1000);
+		connectorCreationForm3.setStatus(Connector.Status.AVAILABLE);
+
+		// Fourth connector for second Evse
+		ConnectorCreationForm connectorCreationForm4 = new ConnectorCreationForm();
+		connectorCreationForm4.setConnectorId("2");
+		connectorCreationForm4.setFormat(Format.CABLE);
+		connectorCreationForm4.setType(Type.IEC_62196_T2_COMBO);
+		connectorCreationForm4.setMaximumAmperage(100);
+		connectorCreationForm4.setPowerType(PowerType.DC);
+		connectorCreationForm4.setMaximumVoltage(1000);
+		connectorCreationForm4.setStatus(Connector.Status.AVAILABLE);
+
+		// Second Evse
+		EvseCreationForm evseCreationForm2 = new EvseCreationForm();
+		String evseId2 = UUID.randomUUID().toString();
+		String evseOcpiId2 = UUID.randomUUID().toString();
+		evseCreationForm2.setEvseId(evseId2);
+		evseCreationForm2.setOcpiId(evseOcpiId2);
+		evseCreationForm2.setConnectors(List.of(connectorCreationForm3, connectorCreationForm4));
+
+		// Location
+		LocationCreationForm locationCreationForm = new LocationCreationForm();
+		String address = RandomStringUtils.random(16, true, false);
+		String city = RandomStringUtils.random(16, true, false);
+		String name = RandomStringUtils.random(16, true, false);
+		String zipCode = RandomStringUtils.random(5, false, true);
+		double latitude = RandomUtils.nextDouble(40, 50);
+		double longitude = RandomUtils.nextDouble(0, 10);
+		locationCreationForm.setAddress(address);
+		locationCreationForm.setCity(city);
+		locationCreationForm.setName(name);
+		locationCreationForm.setZipCode(zipCode);
+		locationCreationForm.setLatitude(latitude);
+		locationCreationForm.setLongitude(longitude);
+		locationCreationForm.setCountryCode("FRA");
+		locationCreationForm.setEvses(List.of(evseCreationForm1, evseCreationForm2)); // Here the Location is linked to
+																						// two Evses
+		LocationView locationView = restTemplate.postForEntity(cpoTestInstance.getExternalUrl() + "/api/admin/location",
+				locationCreationForm, LocationView.class).getBody();
+
+		LOG.info("Waiting a bit so that EMSP has synchronized with CPO...");
+		TimeUnit.SECONDS.sleep(30);
+
+		LOG.info("Triggering again handshake from EMSP...");
+		registeredCPOV211View = restTemplate
+				.postForEntity(emspTestInstance.getExternalUrl() + "/api/admin/cpo/" + cpoKey + "/handshake", null,
+						RegisteredCPOV211View.class)
+				.getBody();
+
+		Assertions.assertThat(registeredCPOV211View.getIncomingToken()).isNotEqualTo(incomingToken);
+		Assertions.assertThat(registeredCPOV211View.getOutgoingToken()).isNotEqualTo(outgoingToken);
+	}
+
+	@Test
 	void testPerformHandshakeCPONoZInTimestampSerialization() {
 		String partyId = RandomStringUtils.random(3, true, false).toUpperCase();
 		LOG.info("Creating test CPO container with party id [{}]...", partyId);

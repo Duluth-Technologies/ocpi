@@ -21,7 +21,6 @@ import com.duluthtechnologies.ocpi.persistence.mapper.RegisteredOperatorEntityMa
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
-import jakarta.transaction.Transactional.TxType;
 
 @Component
 public class RegisteredOperatorStoreImpl implements RegisteredOperatorStore {
@@ -54,16 +53,6 @@ public class RegisteredOperatorStoreImpl implements RegisteredOperatorStore {
 	@Override
 	@Transactional
 	public RegisteredOperator update(RegisteredOperator registeredOperator) {
-		return doUpdate(registeredOperator);
-	}
-
-	@Override
-	@Transactional(value = TxType.REQUIRES_NEW)
-	public RegisteredOperator updateNow(RegisteredOperator registeredOperator) {
-		return doUpdate(registeredOperator);
-	}
-
-	private RegisteredOperator doUpdate(RegisteredOperator registeredOperator) {
 		RegisteredOperatorEntity registeredOperatorEntity = registeredOperatorJPARepository
 				.findByKey(registeredOperator.getKey()).orElseThrow(() -> {
 					String message = "Cannot update RegisteredOperator with key [%s] as it cannot be found."
@@ -71,26 +60,25 @@ public class RegisteredOperatorStoreImpl implements RegisteredOperatorStore {
 					LOG.error(message);
 					throw new RuntimeException(message);
 				});
-		registeredOperatorJPARepository.delete(registeredOperatorEntity);
-		entityManager.flush();
-		RegisteredOperatorEntity entity;
-		if (registeredOperator instanceof RegisteredCPOV211 registeredCPOV211) {
-			entity = registeredOperatorMapper.toEntity(registeredCPOV211, registeredOperatorEntity.getId(),
-					registeredOperatorEntity.getCreatedDate());
-		} else if (registeredOperator instanceof RegisteredEMSPV211 registeredEMSPV211) {
-			entity = registeredOperatorMapper.toEntity(registeredEMSPV211, registeredOperatorEntity.getId(),
-					registeredOperatorEntity.getCreatedDate());
-		} else if (registeredOperator instanceof RegisteredCPO registeredCPO) {
-			entity = registeredOperatorMapper.toEntity(registeredCPO, registeredOperatorEntity.getId(),
-					registeredOperatorEntity.getCreatedDate());
-		} else if (registeredOperator instanceof RegisteredEMSP registeredEMSP) {
-			entity = registeredOperatorMapper.toEntity(registeredEMSP, registeredOperatorEntity.getId(),
-					registeredOperatorEntity.getCreatedDate());
-		} else {
-			throw new IllegalArgumentException(
-					"Not all subclasses are supported for this mapping. Missing for " + registeredOperator.getClass());
+		if (registeredOperatorEntity instanceof RegisteredEMSP
+				&& !(registeredOperatorEntity instanceof RegisteredEMSPV211)
+				&& (registeredOperator instanceof RegisteredEMSPV211)) {
+			// This upgrade will add the data needed in the EMSP v211 table
+			registeredOperatorJPARepository.upgradeEMSPToV211(registeredOperatorEntity.getId());
+			// Need to detach the entity so that call to find next line will actually etch
+			// the inherited entity
+			entityManager.detach(registeredOperatorEntity);
+			// Fetch again the entity after type change
+			registeredOperatorEntity = registeredOperatorJPARepository.findByKey(registeredOperator.getKey()).get();
+		} else if (registeredOperatorEntity instanceof RegisteredCPO
+				&& !(registeredOperatorEntity instanceof RegisteredCPOV211)
+				&& (registeredOperator instanceof RegisteredCPOV211)) {
+			registeredOperatorJPARepository.upgradeCPOToV211(registeredOperatorEntity.getId());
+			entityManager.detach(registeredOperatorEntity);
+			registeredOperatorEntity = registeredOperatorJPARepository.findByKey(registeredOperator.getKey()).get();
 		}
-		return registeredOperatorJPARepository.save(entity);
+		registeredOperatorMapper.updateEntity(registeredOperatorEntity, registeredOperator);
+		return registeredOperatorJPARepository.save(registeredOperatorEntity);
 	}
 
 	@Override

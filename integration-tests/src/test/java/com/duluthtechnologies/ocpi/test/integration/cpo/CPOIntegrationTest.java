@@ -9,6 +9,7 @@ import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -146,6 +147,60 @@ class CPOIntegrationTest extends AbstractCPOTest {
 		Assertions.assertThat(registeredEMSPV211View.getOutgoingToken()).isNotEqualTo(token);
 		Assertions.assertThat(registeredEMSPV211View.getOutgoingToken())
 				.isEqualTo(registeredCPOV211View.getIncomingToken());
+
+	}
+
+	@Test
+	void testPerformHandshakeTwice() {
+		String partyId = RandomStringUtils.random(3, true, false).toUpperCase();
+		LOG.info("Instantiating new Emsp test instance with party id [{}] in test class [{}]...", partyId, this);
+		emspTestInstance = ocpiContainerProvider.createEMSPContainer(network, "FR", partyId);
+
+		LOG.info("Registering EMSP into CPO...");
+		String emspKey = "emsp_" + emspTestInstance.getCountryCode() + emspTestInstance.getPartyId();
+		EMSPRegistrationForm emspRegistrationForm = new EMSPRegistrationForm();
+		emspRegistrationForm.setCountryCode(emspTestInstance.getCountryCode());
+		emspRegistrationForm.setPartyId(emspTestInstance.getPartyId());
+		emspRegistrationForm.setKey(emspKey);
+		emspRegistrationForm.setName(emspTestInstance.getPartyId());
+		emspRegistrationForm.setVersionUrl(emspTestInstance.getInternalUrl() + "/ocpi/emsp/versions");
+		String token = RandomStringUtils.random(8, true, false);
+		emspRegistrationForm.setOutgoingToken(token);
+		RegisteredEMSPView registeredEMSPView = restTemplate
+				.postForEntity(cpoTestInstance.getExternalUrl() + "/api/admin/emsp", emspRegistrationForm,
+						RegisteredEMSPView.class)
+				.getBody();
+
+		LOG.info("Registering CPO into EMSP...");
+		CPORegistrationForm cpoRegistrationForm = new CPORegistrationForm();
+		cpoRegistrationForm.setCountryCode("FR");
+		cpoRegistrationForm.setPartyId(cpoTestInstance.getPartyId());
+		String cpoKey = "cpo_FR" + cpoTestInstance.getPartyId();
+		cpoRegistrationForm.setKey(cpoKey);
+		cpoRegistrationForm.setName("name");
+		cpoRegistrationForm.setVersionUrl(cpoTestInstance.getInternalUrl() + "/ocpi/cpo/version");
+		cpoRegistrationForm.setIncomingToken(token);
+		restTemplate.postForEntity(emspTestInstance.getExternalUrl() + "/api/admin/cpo", cpoRegistrationForm,
+				RegisteredCPOView.class).getBody();
+
+		LOG.info("Triggering handshake from CPO...");
+		RegisteredEMSPV211View registeredEMSPV211View = restTemplate
+				.postForEntity(cpoTestInstance.getExternalUrl() + "/api/admin/emsp/" + emspKey + "/handshake", null,
+						RegisteredEMSPV211View.class)
+				.getBody();
+
+		// Store the token to make sure they are modified after second handshake
+		String incomingToken = registeredEMSPV211View.getIncomingToken();
+		String outgoingToken = registeredEMSPV211View.getOutgoingToken();
+
+		LOG.info("Triggering again handshake from CPO...");
+		registeredEMSPV211View = restTemplate
+				.postForEntity(cpoTestInstance.getExternalUrl() + "/api/admin/emsp/" + emspKey + "/handshake", null,
+						RegisteredEMSPV211View.class)
+				.getBody();
+
+		Assertions.assertThat(registeredEMSPV211View.getIncomingToken()).isNotEqualTo(incomingToken);
+		Assertions.assertThat(registeredEMSPV211View.getOutgoingToken()).isNotEqualTo(outgoingToken);
 
 	}
 
@@ -512,9 +567,10 @@ class CPOIntegrationTest extends AbstractCPOTest {
 				.getForEntity(emspTestInstance.getExternalUrl() + "/api/ops/cpo/" + cpoKey + "/locations",
 						CPOLocationView[].class)
 				.getBody();
-		ConnectorView connectorView = cpoLocationViews[0].getEvses().stream()
-				.flatMap(evse -> evse.getConnectors().stream()).filter(c -> c.getConnectorId().equals("1")).findFirst()
-				.get();
+		CPOLocationView cpoLocationView = Stream.of(cpoLocationViews)
+				.filter(l -> l.getOcpiId().equals(locationView.getOcpiId())).findFirst().get();
+		ConnectorView connectorView = cpoLocationView.getEvses().stream().flatMap(evse -> evse.getConnectors().stream())
+				.filter(c -> c.getConnectorId().equals("1")).findFirst().get();
 		String connectorKeyOnEmsp = connectorView.getKey();
 
 		LOG.info("Retrieving ChargingSession on EMSP...");

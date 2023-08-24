@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -73,7 +74,8 @@ public class CPOCredentialsController {
 	@Authenticated(type = AuthenticatedType.EMSP)
 	public ResponseEntity<Response<Credentials>> createCredentials(@RequestBody @Valid Credentials credentials) {
 		RegisteredEMSP registeredEMSP = registeredOperatorService.findEMSPByKey(SecurityContext.getEMSPKey()).get();
-		if (registeredEMSP instanceof RegisteredEMSPV211) {
+		if (registeredEMSP instanceof RegisteredEMSPV211 registeredEMSPV211
+				&& registeredEMSPV211.getOutgoingToken() != null) {
 			String message = "Cannot create Credentials for EMSP with name [%s] as Credentials have already been created."
 					.formatted(registeredEMSP.getName());
 			LOG.error(message);
@@ -81,6 +83,15 @@ public class CPOCredentialsController {
 			return ResponseEntity.status(HttpStatusCode.valueOf(405)).body(response);
 		}
 		registeredEMSP = registeredOperatorService.finalizeHandshakeWithEMSP(SecurityContext.getEMSPKey(), credentials);
+		return ResponseEntity.ok(new Response(new Credentials(registeredEMSP.getIncomingToken(), externalVersionsUrl(),
+				businessDetails, cpoInfo.getPartyId(), cpoInfo.getCountryCode()), 1000, null, Instant.now()));
+	}
+
+	@PutMapping
+	@Authenticated(type = AuthenticatedType.EMSP)
+	public ResponseEntity<Response<Credentials>> updateCredentials(@RequestBody @Valid Credentials credentials) {
+		RegisteredEMSP registeredEMSP = registeredOperatorService
+				.finalizeHandshakeWithEMSP(SecurityContext.getEMSPKey(), credentials);
 		return ResponseEntity.ok(new Response(new Credentials(registeredEMSP.getIncomingToken(), externalVersionsUrl(),
 				businessDetails, cpoInfo.getPartyId(), cpoInfo.getCountryCode()), 1000, null, Instant.now()));
 	}
